@@ -71,6 +71,8 @@
   <button id="remp" title="Alguém sai da balada">− Sair</button>
   <button id="goBar" title="Manda alguém beber no bar">🍹 Bar</button>
   <button id="goGroup" title="Forma um grupo dançando junto">👯 Juntar</button>
+  <button id="goTable" title="Manda alguém dançar em cima de uma mesa">🪑 Mesa</button>
+  <button id="goUp" title="Manda alguém subir ao 2º andar">⬆ 2º andar</button>
   <button id="fpBtn" title="Andar pela balada com WASD / setas (tecla V)">🚶 1ª pessoa</button>
   <button id="puff" title="Solta uma rajada de fumaça">💨</button>
   <label class="chk"><input id="flow" type="checkbox" checked> fluxo</label>
@@ -85,6 +87,8 @@
   <div id="selNow" style="font-size:12px;color:var(--mute);min-height:1.2em"></div>
   <div class="row"><select id="selDance"></select></div>
   <div class="row"><button id="selBar" style="flex:1">🍹 Ir beber</button></div>
+  <div class="row"><button id="selTable" style="flex:1">🪑 Dançar na mesa</button></div>
+  <div class="row"><button id="selUp" style="flex:1">⬆ Subir pro 2º andar</button></div>
   <div class="row"><button id="selLeave" style="flex:1">🚪 Mandar sair</button></div>
 </div>
 
@@ -106,7 +110,7 @@ const wrapPi = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI)
 const S = {
   mode: 'bpm', playing: false, demo: false, live: false,
   bpm: 124, offset: 0, beatPos: 0, lastIdx: null, beatCount: 0,
-  pulse: 0, strobe: 0, hue: 290, dance: 0, sweep: 0, spinL: 0, spinR: 0, flowT: 3, groupT: 6, barT: 4, carT: 1,
+  pulse: 0, strobe: 0, hue: 290, dance: 0, sweep: 0, spinL: 0, spinR: 0, flowT: 3, groupT: 6, barT: 4, carT: 1, tableT: 5, upT: 5,
 };
 
 // ---------- batida ----------
@@ -247,7 +251,7 @@ scene.background = new THREE.Color(0x05030c);
 scene.fog = new THREE.FogExp2(0x05030c, 0.016);
 
 const camera = new THREE.PerspectiveCamera(50, 1, .1, 120);
-camera.position.set(0, 10.5, 17.5);
+camera.position.set(0, 16, 31);
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
@@ -260,8 +264,7 @@ resize();
 scene.add(new THREE.AmbientLight(0x8a7fb0, .75));
 scene.add(new THREE.HemisphereLight(0x9a8cff, 0x201030, .55));
 
-const ROOM = { x0: -12, x1: 12, z0: -8, z1: 10.6, stageZ: -4, doorZ: 6.5 };
-const groundY = z => z < ROOM.stageZ ? .5 : 0;
+const ROOM = { x0: -12, x1: 12, z0: -8, z1: 23, stageZ: -4, doorZ: 6.5 };
 
 const stdMat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .85, metalness: .05, ...o });
 const mesh = (geo, mat, x = 0, y = 0, z = 0, parent = scene) => {
@@ -273,7 +276,7 @@ mesh(new THREE.PlaneGeometry(80, 80).rotateX(-Math.PI / 2), stdMat(0x07050f), 0,
 const tiles = [];
 {
   const g = new THREE.PlaneGeometry(1.5, 1.5).rotateX(-Math.PI / 2);
-  for (let k = 0; k < 9; k++) for (let i = 0; i < 15; i++) {
+  for (let k = 0; k < 17; k++) for (let i = 0; i < 15; i++) {
     const m = new THREE.MeshStandardMaterial({ color: 0x15102a, roughness: .5, metalness: .25, emissive: 0x000000 });
     mesh(g, m, -11.2 + i * 1.6, 0, -3.2 + k * 1.6);
     tiles.push({ m, i, k });
@@ -283,9 +286,9 @@ const tiles = [];
 // paredes
 const wallMat = stdMat(0x140b26, { roughness: .95 });
 mesh(new THREE.BoxGeometry(25, 14, .4), wallMat, 0, 7, ROOM.z0 - .2);                    // fundo
-mesh(new THREE.BoxGeometry(.4, 14, 18.6), wallMat, ROOM.x1 + .2, 7, 1.3);                // direita
+mesh(new THREE.BoxGeometry(.4, 14, 31), wallMat, ROOM.x1 + .2, 7, 7.5);                // direita
 mesh(new THREE.BoxGeometry(.4, 14, 13.2), wallMat, ROOM.x0 - .2, 7, -1.4);               // esquerda (até a porta)
-mesh(new THREE.BoxGeometry(.4, 14, 2.8), wallMat, ROOM.x0 - .2, 7, 9.2);                 // esquerda (depois da porta)
+mesh(new THREE.BoxGeometry(.4, 14, 15.2), wallMat, ROOM.x0 - .2, 7, 15.4);                 // esquerda (depois da porta)
 mesh(new THREE.BoxGeometry(.4, 10, 2.6), wallMat, ROOM.x0 - .2, 9, ROOM.doorZ);          // verga
 
 // porta (neon) + letreiro
@@ -480,8 +483,8 @@ const spots = [];
   dl.position.set(0, 7.5, 3); dl.target.position.set(0, 2.3, -6.3); scene.add(dl, dl.target);
 }
 // globo de espelhos
-const ball = mesh(new THREE.IcosahedronGeometry(.55, 2), new THREE.MeshPhongMaterial({ color: 0xdddddd, shininess: 120, specular: 0xffffff, flatShading: true }), 0, 7, 0);
-mesh(new THREE.CylinderGeometry(.02, .02, 3, 6), stdMat(0x333333), 0, 8.5, 0);
+const ball = mesh(new THREE.IcosahedronGeometry(.55, 2), new THREE.MeshPhongMaterial({ color: 0xdddddd, shininess: 120, specular: 0xffffff, flatShading: true }), 0, 7, 6);
+mesh(new THREE.CylinderGeometry(.02, .02, 3, 6), stdMat(0x333333), 0, 8.5, 6);
 
 // fumaça (sprites reaproveitados)
 const smokes = [];
@@ -562,14 +565,76 @@ const barNeon = new THREE.MeshBasicMaterial({ color: 0xffb36b });
   sign.rotation.y = -Math.PI / 2;
 }
 
+// ---------- salão ampliado: 2º andar, escada e mesas ----------
+const MEZ = { x0: 5.8, x1: 12, z0: 12, z1: 22.6, y: 4.6 };
+const STAIR = { x0: 3.6, x1: 5.8, zTop: 12, zBot: 22, n: 20 };
+STAIR.dz = (STAIR.zBot - STAIR.zTop) / STAIR.n; STAIR.dy = MEZ.y / STAIR.n;
+const inStairs = (x, z) => x >= STAIR.x0 && x <= STAIR.x1 && z >= STAIR.zTop && z <= STAIR.zBot;
+const TABLE_TOP = 1.26;
+
+// altura do chão num ponto: degraus da escada, laje do 2º andar, palco ou piso
+function groundYFor(up, x, z) {
+  if (inStairs(x, z)) return Math.min(MEZ.y, Math.ceil((STAIR.zBot - z) / STAIR.dz) * STAIR.dy);
+  if (up && x >= MEZ.x0 - .6 && x <= MEZ.x1 && z >= MEZ.z0 - .2 && z <= MEZ.z1) return MEZ.y;
+  return z < ROOM.stageZ ? .5 : 0;
+}
+
+const mezNeon = neon(0x22e6ff);
+const tableNeon = neon(0x22e6ff);
+const columns = [{ x: 6.3, z: 17 }, { x: 6.3, z: 22.3 }, { x: 11.7, z: 22.3 }];
+const tables = [];
+let mezLight;
+{
+  const mw = MEZ.x1 - MEZ.x0, md = MEZ.z1 - MEZ.z0, cx = (MEZ.x0 + MEZ.x1) / 2, cz = (MEZ.z0 + MEZ.z1) / 2;
+  mesh(new THREE.BoxGeometry(mw, .3, md), stdMat(0x1a1230, { roughness: .45, metalness: .25 }), cx, MEZ.y - .15, cz);
+  mesh(new THREE.BoxGeometry(mw, .07, .07), mezNeon, cx, MEZ.y - .02, MEZ.z1);                       // borda da frente
+  const wl = md - 2.2, wz = MEZ.z0 + 2.2 + wl / 2;                                                   // lado oeste (deixa a entrada da escada aberta)
+  mesh(new THREE.BoxGeometry(.07, .07, wl), mezNeon, MEZ.x0, MEZ.y - .02, wz);
+  const glass = new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: .14, depthWrite: false, side: THREE.DoubleSide });
+  mesh(new THREE.BoxGeometry(mw, .95, .04), glass, cx, MEZ.y + .48, MEZ.z1);
+  mesh(new THREE.BoxGeometry(.04, .95, wl), glass, MEZ.x0, MEZ.y + .48, wz);
+  mesh(new THREE.BoxGeometry(mw - 1.2, .95, .04), glass, cx + .6, MEZ.y + .48, MEZ.z0);
+  mesh(new THREE.BoxGeometry(mw, .05, .05), mezNeon, cx, MEZ.y + .96, MEZ.z1);
+  mesh(new THREE.BoxGeometry(.05, .05, wl), mezNeon, MEZ.x0, MEZ.y + .96, wz);
+  mesh(new THREE.BoxGeometry(mw - 1.2, .05, .05), mezNeon, cx + .6, MEZ.y + .96, MEZ.z0);
+  for (const c of columns) mesh(new THREE.CylinderGeometry(.18, .18, MEZ.y - .3, 12), stdMat(0x2a2150, { metalness: .4, roughness: .4 }), c.x, (MEZ.y - .3) / 2, c.z);
+
+  // escada: degraus de baixo (z=22) até o 2º andar (z=12)
+  const stepMat = stdMat(0x241a44, { roughness: .5, metalness: .2 });
+  for (let i = 0; i < STAIR.n; i++) {
+    const h = (i + 1) * STAIR.dy, z = STAIR.zBot - (i + .5) * STAIR.dz;
+    mesh(new THREE.BoxGeometry(2.2, h, STAIR.dz), stepMat, 4.7, h / 2, z);
+    mesh(new THREE.BoxGeometry(2.2, .03, .06), mezNeon, 4.7, h + .01, z + STAIR.dz / 2 - .04);
+  }
+  const run = STAIR.zBot - STAIR.zTop, len = Math.hypot(MEZ.y, run), ang = Math.atan2(MEZ.y, run), mz = (STAIR.zTop + STAIR.zBot) / 2;
+  mesh(new THREE.BoxGeometry(.06, .06, len), mezNeon, STAIR.x0, MEZ.y / 2 + 1.0, mz).rotation.x = ang;
+  mesh(new THREE.BoxGeometry(.04, .9, len), glass, STAIR.x0, MEZ.y / 2 + .55, mz).rotation.x = ang;
+
+  mezLight = new THREE.PointLight(0xff2bd6, 70, 15, 2); mezLight.position.set(9, 6.6, 17); scene.add(mezLight);
+}
+
+function makeTable(x, z, up) {
+  const y0 = up ? MEZ.y : 0, r = 1.3;
+  mesh(new THREE.CylinderGeometry(.7, .75, .08, 24), stdMat(0x120d24), x, y0 + .04, z);
+  mesh(new THREE.CylinderGeometry(.2, .28, 1.15, 14), stdMat(0x2a2150, { metalness: .5, roughness: .35 }), x, y0 + .6, z);
+  mesh(new THREE.CylinderGeometry(r, r, .12, 36), stdMat(0x1c1538, { metalness: .35, roughness: .3 }), x, y0 + 1.2, z);
+  const rim = mesh(new THREE.TorusGeometry(r, .035, 6, 48).rotateX(Math.PI / 2), tableNeon, x, y0 + 1.27, z);
+  tables.push({ x, z, up, r, slots: [{ x: x - .5, z, occ: null }, { x: x + .5, z, occ: null }], rim });
+}
+makeTable(-8.8, 12.5, false); makeTable(-8.8, 18.5, false); makeTable(-2.5, 20.8, false);
+makeTable(8.5, 14.6, true); makeTable(10.6, 18.2, true); makeTable(8.4, 21, true);
+
 // ---------- bonecos lego ----------
 const SKIN = '#ffd21f';
-const SHIRTS = ['#e63946', '#2a9d8f', '#f4a261', '#4361ee', '#b5179e', '#ffd60a', '#06d6a0', '#fb5607', '#8338ec', '#ef476f', '#00b4d8', '#80ed99'];
-const PANTS = ['#1d3557', '#2b2b2b', '#3a0ca3', '#264653', '#5c3d2e', '#0b3d91', '#6a040f'];
-const HAIRS = ['#1a1a1a', '#4a2c12', '#c8791c', '#e9c46a', '#7a1f5c', '#2b2b6a'];
+const SKINS = ['#ffd21f', '#ffd21f', '#ffd21f', '#f9d5b5', '#f2c18d', '#d9a066', '#c68642', '#8d5524'];
+const SHIRTS = ['#e63946', '#2a9d8f', '#f4a261', '#4361ee', '#b5179e', '#ffd60a', '#06d6a0', '#fb5607', '#8338ec', '#ef476f', '#00b4d8', '#80ed99', '#ff70a6', '#f1f1f1', '#222222', '#9d4edd'];
+const PANTS = ['#1d3557', '#2b2b2b', '#3a0ca3', '#264653', '#5c3d2e', '#0b3d91', '#6a040f', '#7a7a7a', '#f1f1f1', '#9e2a2b'];
+const HAIRS = ['#1a1a1a', '#4a2c12', '#c8791c', '#e9c46a', '#7a1f5c', '#2b2b6a', '#c1121f', '#e5e5e5', '#2ec4b6', '#ff70a6'];
+const SHOES = ['#f1f1f1', '#e63946', '#111111', '#ffd60a', '#4361ee', '#06d6a0'];
+const GOLD = '#ffd60a';
 const DRINKS = ['#ffb703', '#ff4d6d', '#80ed99', '#4cc9f0', '#f8f9fa'];
-const NAMES_F = ['Ana', 'Bia', 'Duda', 'Fabi', 'Gabi', 'Iara', 'Lara', 'Mari', 'Olga', 'Quel', 'Sol', 'Vivi'];
-const NAMES_M = ['Caio', 'Enzo', 'Hugo', 'João', 'Kaká', 'Nando', 'Pedro', 'Rafa', 'Téo', 'Davi', 'Beto', 'Léo'];
+const NAMES_F = ['Ana', 'Bia', 'Duda', 'Fabi', 'Gabi', 'Iara', 'Lara', 'Mari', 'Olga', 'Quel', 'Sol', 'Vivi', 'Nina', 'Tati', 'Bela'];
+const NAMES_M = ['Caio', 'Enzo', 'Hugo', 'João', 'Kaká', 'Nando', 'Pedro', 'Rafa', 'Téo', 'Davi', 'Beto', 'Léo', 'Gui', 'Dudu', 'Theo'];
 
 const matCache = new Map();
 const mat = c => {
@@ -592,87 +657,228 @@ const blobMat = (() => {
 const REST = { bob: 0, yaw: 0, tx: 0, tz: 0, sx: 0, hx: 0, hy: 0, hz: 0, lA: .08, rA: .08, lF: 0, rF: 0, lL: 0, rL: 0, lS: 0, rS: 0, sq: 0, fx: 0, gy: 0, lay: 0 };
 const WRAPPED = { yaw: 1, fx: 1, gy: 1 };
 
+// sorteia roupa, rosto, cabelo e acessórios
+function randomLook(female) {
+  const skin = pick(SKINS);
+  const top = female ? pick(['tee', 'tee', 'tank', 'jacket', 'hoodie', 'jersey', 'dress', 'dress']) : pick(['tee', 'tee', 'tank', 'jacket', 'hoodie', 'vest', 'jersey', 'tie']);
+  let bottom = female ? pick(['pants', 'shorts', 'skirt', 'skirt']) : pick(['pants', 'pants', 'shorts']);
+  if (top === 'dress') bottom = 'dress';
+  const shirt = pick(SHIRTS);
+  const hatKinds = female ? ['cap', 'capBack', 'beanie', 'headband', 'flower', 'bow', 'crown', 'party'] : ['cap', 'capBack', 'beanie', 'cowboy', 'party', 'crown', 'headband'];
+  const eyes = pick(['dot', 'dot', 'dot', 'wide', 'happy', 'wink', 'sleepy']);
+  return {
+    female, skin, top, bottom, shirt, inner: pick(['#f4f4f4', '#ffd60a', '#e63946', '#222222']), pants: pick(PANTS),
+    legs: pick([skin, skin, '#222222', shirt]), shoes: pick(SHOES), hair: pick(HAIRS),
+    kind: female ? pick(['long', 'long', 'pony', 'bun', 'bob', 'pigtails', 'short', 'afro']) : pick(['none', 'short', 'short', 'buzz', 'spiky', 'mohawk', 'afro', 'long']),
+    hat: Math.random() < .35 ? pick(hatKinds) : null, hatColor: pick(SHIRTS),
+    eyes, brows: pick([null, null, 'happy', 'angry', 'flat']), mouth: pick(['smile', 'smile', 'grin', 'grin', 'tongue', 'ooo', 'smirk', 'flat']),
+    glasses: pick([null, null, null, 'shades', 'round', 'visor']),
+    blush: Math.random() < (female ? .5 : .12), freckles: Math.random() < .15,
+    stache: !female ? (Math.random() < .18 ? 'stache' : Math.random() < .1 ? 'goatee' : null) : null,
+    necklace: Math.random() < .2, backpack: Math.random() < .12, watch: Math.random() < .2,
+    earrings: female && Math.random() < .45, belt: Math.random() < .35,
+    scale: rnd(.92, 1.07),
+  };
+}
+
 function buildFig(o) {
+  o = { top: 'tee', bottom: 'pants', skin: SKIN, shirt: '#888888', inner: '#f4f4f4', pants: '#222222', legs: SKIN, shoes: '#f1f1f1',
+    hair: '#222222', kind: 'none', hat: null, hatColor: '#e63946', eyes: 'dot', brows: null, mouth: 'smile', glasses: null, scale: 1, ...o };
   const root = new THREE.Group();
   const spinG = new THREE.Group(); root.add(spinG);                                   // giro no chão
   const pivot = new THREE.Group(); pivot.position.y = 1.45; spinG.add(pivot);          // pivô do mortal / deitar
   const body = new THREE.Group(); body.rotation.order = 'YXZ'; body.position.y = -1.45; pivot.add(body);
   const upper = new THREE.Group(); upper.position.y = 1.15; body.add(upper);          // tronco (inclina na cintura)
-  const pants = mat(o.pants), shirt = mat(o.shirt), skin = mat(SKIN);
-  const stripe = mat('#' + new THREE.Color(o.shirt).lerp(new THREE.Color('#ffffff'), .45).getHexString());
+  const skin = mat(o.skin), pants = mat(o.pants), shirt = mat(o.shirt), inner = mat(o.inner), dark = mat('#222222');
+  const gold = mat(GOLD);
+  const dressy = o.bottom === 'skirt' || o.bottom === 'dress';
+  const lowerM = o.bottom === 'dress' ? shirt : pants;
 
-  mesh(G('hips', () => new THREE.BoxGeometry(1.0, .25, .56)), pants, 0, 1.025, 0, body);
+  // ---- quadril, pernas e sapatos ----
+  mesh(G('hips', () => new THREE.BoxGeometry(1.0, .25, .56)), lowerM, 0, 1.025, 0, body);
   if (o.female) {
     const bg = G('butt', () => new THREE.SphereGeometry(.23, 12, 8));
-    mesh(bg, pants, -.2, 1.02, -.3, body); mesh(bg, pants, .2, 1.02, -.3, body);
+    mesh(bg, lowerM, -.2, 1.02, -.3, body); mesh(bg, lowerM, .2, 1.02, -.3, body);
   }
-  if (o.skirt) mesh(G('skirt', () => new THREE.CylinderGeometry(.55, .8, .42, 18)), mat(o.skirt), 0, .97, 0, body);
-  mesh(G('torso', () => new THREE.BoxGeometry(1.0, 1.0, .56)), shirt, 0, .5, 0, upper);
-  mesh(G('stripe', () => new THREE.BoxGeometry(1.02, .13, .58)), stripe, 0, .3, 0, upper);
-
+  if (o.bottom === 'skirt') mesh(G('skirt', () => new THREE.CylinderGeometry(.55, .8, .42, 18)), pants, 0, .97, 0, body);
+  if (o.bottom === 'dress') mesh(G('dressSkirt', () => new THREE.CylinderGeometry(.52, .88, .8, 20)), shirt, 0, .78, 0, body);
+  if (o.belt && !dressy) {
+    mesh(G('belt', () => new THREE.BoxGeometry(1.02, .07, .58)), dark, 0, 1.13, 0, body);
+    mesh(G('buckle', () => new THREE.BoxGeometry(.14, .1, .02)), gold, 0, 1.13, .295, body);
+  }
+  const shoeM = mat(o.shoes);
   const leg = x => {
     const g = new THREE.Group(); g.position.set(x, .9, 0); body.add(g);
-    mesh(G('leg', () => new THREE.BoxGeometry(.47, .9, .5)), pants, 0, -.45, 0, g);
-    mesh(G('foot', () => new THREE.BoxGeometry(.47, .12, .2)), pants, 0, -.84, .15, g);
+    if (o.bottom === 'pants') mesh(G('leg', () => new THREE.BoxGeometry(.47, .9, .5)), pants, 0, -.45, 0, g);
+    else if (o.bottom === 'shorts') {
+      mesh(G('legUp', () => new THREE.BoxGeometry(.5, .46, .52)), pants, 0, -.23, 0, g);
+      mesh(G('legLow', () => new THREE.BoxGeometry(.4, .46, .42)), skin, 0, -.67, 0, g);
+    } else mesh(G('leg', () => new THREE.BoxGeometry(.47, .9, .5)), mat(o.legs), 0, -.45, 0, g);
+    mesh(G('shoe', () => new THREE.BoxGeometry(.5, .15, .36)), shoeM, 0, -.83, .1, g);
     return g;
   };
   const legL = leg(-.25), legR = leg(.25);
 
+  // ---- tronco (camisa, jaqueta, moletom...) ----
+  const longSleeve = ['jacket', 'hoodie', 'vest', 'tie'].includes(o.top);
+  const torsoM = (o.top === 'vest' || o.top === 'tie') ? inner : shirt;
+  mesh(G('torso', () => new THREE.BoxGeometry(1.0, 1.0, .56)), torsoM, 0, .5, 0, upper);
+  if (o.top === 'tee') mesh(G('stripe', () => new THREE.BoxGeometry(1.02, .13, .58)), mat('#' + new THREE.Color(o.shirt).lerp(new THREE.Color('#ffffff'), .45).getHexString()), 0, .3, 0, upper);
+  if (o.top === 'jersey') for (const x of [-.3, 0, .3]) mesh(G('jStripe', () => new THREE.BoxGeometry(.12, .98, .02)), inner, x, .5, .285, upper);
+  if (o.top === 'tank') mesh(G('neck', () => new THREE.BoxGeometry(.42, .22, .02)), skin, 0, .88, .285, upper);
+  if (o.top === 'jacket') mesh(G('jPanel', () => new THREE.BoxGeometry(.34, .98, .02)), inner, 0, .5, .285, upper);
+  if (o.top === 'hoodie') {
+    mesh(G('hood', () => new THREE.SphereGeometry(.42, 14, 8).scale(1, .5, .5)), shirt, 0, 1.0, -.2, upper);
+    mesh(G('pocket', () => new THREE.BoxGeometry(.62, .2, .04)), mat('#' + new THREE.Color(o.shirt).multiplyScalar(.7).getHexString()), 0, .2, .29, upper);
+  }
+  if (o.top === 'vest') for (const x of [-.27, .27]) mesh(G('vPanel', () => new THREE.BoxGeometry(.42, .92, .02)), shirt, x, .5, .285, upper);
+  if (o.top === 'tie') {
+    mesh(G('tie', () => new THREE.BoxGeometry(.1, .55, .02)), mat('#e63946'), 0, .52, .285, upper);
+    mesh(G('knot', () => new THREE.BoxGeometry(.14, .1, .03)), mat('#e63946'), 0, .82, .285, upper);
+  }
+  if (o.necklace && o.top !== 'tie') mesh(G('necklace', () => new THREE.TorusGeometry(.27, .025, 6, 18).rotateX(Math.PI / 2)), gold, 0, .98, .03, upper);
+  if (o.backpack) mesh(G('pack', () => new THREE.BoxGeometry(.72, .85, .3)), mat('#' + new THREE.Color(o.hatColor).multiplyScalar(.8).getHexString()), 0, .5, -.43, upper);
+
+  // ---- braços ----
+  const armM = (o.top === 'vest' || o.top === 'tie') ? inner : shirt;
   const arm = x => {
     const g = new THREE.Group(); g.position.set(x, .9, 0); upper.add(g);
-    mesh(G('arm', () => new THREE.BoxGeometry(.26, .72, .3)), shirt, 0, -.33, 0, g);
+    if (o.top === 'tank') mesh(G('armSkin', () => new THREE.BoxGeometry(.22, .72, .26)), skin, 0, -.33, 0, g);
+    else if (longSleeve) mesh(G('arm', () => new THREE.BoxGeometry(.27, .72, .31)), armM, 0, -.33, 0, g);
+    else {
+      mesh(G('sleeve', () => new THREE.BoxGeometry(.27, .32, .31)), shirt, 0, -.13, 0, g);
+      mesh(G('forearm', () => new THREE.BoxGeometry(.22, .42, .26)), skin, 0, -.5, 0, g);
+    }
     mesh(G('hand', () => new THREE.SphereGeometry(.14, 10, 8)), skin, 0, -.78, 0, g);
     return g;
   };
   const armL = arm(-.64), armR = arm(.64);
+  if (o.watch) mesh(G('watch', () => new THREE.TorusGeometry(.14, .04, 6, 12).rotateX(Math.PI / 2)), mat('#222222'), 0, -.62, 0, armL);
   const cup = mesh(G('cup', () => new THREE.CylinderGeometry(.11, .08, .26, 12)),
     new THREE.MeshPhongMaterial({ color: pick(DRINKS), shininess: 100 }), 0, -.86, .14, armR);
   cup.visible = false;
 
+  // ---- cabeça e rosto ----
   const head = new THREE.Group(); head.position.set(0, 1.0, 0); upper.add(head);
   mesh(G('head', () => new THREE.CylinderGeometry(.34, .34, .55, 24)), skin, 0, .275, 0, head);
   mesh(G('stud', () => new THREE.CylinderGeometry(.13, .13, .12, 16)), skin, 0, .61, 0, head);
-  const dark = mat('#222222');
-  const eyeG = G('eye', () => new THREE.SphereGeometry(.045, 8, 6));
-  mesh(eyeG, dark, -.12, .33, .33, head); mesh(eyeG, dark, .12, .33, .33, head);
-  const mouth = mesh(G('mouth', () => new THREE.TorusGeometry(.12, .018, 6, 16, Math.PI)), o.female ? mat('#d62839') : dark, 0, .24, .335, head);
-  mouth.rotation.z = Math.PI;
-  if (o.female) {   // cílios
+  const FZ = .335;
+  const eyeDot = G('eye', () => new THREE.SphereGeometry(.045, 8, 6));
+  const arcEye = G('arcEye', () => new THREE.TorusGeometry(.055, .014, 6, 10, Math.PI));
+  const eyeAt = (x, kind) => {
+    if (kind === 'wide') {
+      mesh(G('eyeW', () => new THREE.SphereGeometry(.075, 10, 8).scale(1, 1, .4)), mat('#ffffff'), x, .34, FZ - .01, head);
+      mesh(G('pupil', () => new THREE.SphereGeometry(.04, 8, 6)), dark, x, .34, FZ + .02, head);
+    } else if (kind === 'happy') mesh(arcEye, dark, x, .31, FZ, head);
+    else if (kind === 'sleepy') mesh(G('eyeS', () => new THREE.BoxGeometry(.1, .02, .015)), dark, x, .33, FZ, head);
+    else mesh(eyeDot, dark, x, .33, FZ - .005, head);
+  };
+  eyeAt(-.12, o.eyes);
+  eyeAt(.12, o.eyes === 'wink' ? 'happy' : o.eyes);
+  if (o.female && (o.eyes === 'dot' || o.eyes === 'wide')) {
     const lash = G('lash', () => new THREE.BoxGeometry(.11, .02, .02));
-    mesh(lash, dark, -.12, .38, .335, head).rotation.z = .35; mesh(lash, dark, .12, .38, .335, head).rotation.z = -.35;
+    mesh(lash, dark, -.12, .4, FZ, head).rotation.z = .35; mesh(lash, dark, .12, .4, FZ, head).rotation.z = -.35;
   }
-
+  if (o.brows) {
+    const br = G('brow', () => new THREE.BoxGeometry(.14, .025, .02)), a = o.brows === 'angry' ? -.35 : o.brows === 'happy' ? .25 : 0;
+    mesh(br, dark, -.12, .45, FZ, head).rotation.z = -a; mesh(br, dark, .12, .45, FZ, head).rotation.z = a;
+  }
+  const lipM = o.female ? mat('#d62839') : dark;
+  const smileArc = G('smile', () => new THREE.TorusGeometry(.12, .018, 6, 16, Math.PI));
+  if (o.mouth === 'smile' || o.mouth === 'tongue') mesh(smileArc, lipM, 0, .24, FZ, head).rotation.z = Math.PI;
+  if (o.mouth === 'tongue') mesh(G('tongue', () => new THREE.BoxGeometry(.075, .1, .015)), mat('#ff5d8f'), .03, .1, FZ, head);
+  if (o.mouth === 'grin') {
+    mesh(G('grin', () => new THREE.CircleGeometry(.15, 18, Math.PI, Math.PI)), mat('#3a0a12'), 0, .27, FZ, head);
+    mesh(G('teeth', () => new THREE.BoxGeometry(.2, .035, .004)), mat('#ffffff'), 0, .262, FZ + .002, head);
+  }
+  if (o.mouth === 'ooo') {
+    mesh(G('ooo', () => new THREE.CircleGeometry(.055, 12)), mat('#3a0a12'), 0, .17, FZ, head);
+    mesh(G('oooRing', () => new THREE.TorusGeometry(.055, .015, 6, 12)), lipM, 0, .17, FZ, head);
+  }
+  if (o.mouth === 'smirk') mesh(G('smirk', () => new THREE.TorusGeometry(.12, .018, 6, 12, Math.PI * .55)), lipM, .02, .24, FZ, head).rotation.z = Math.PI + .2;
+  if (o.mouth === 'flat') mesh(G('flat', () => new THREE.BoxGeometry(.2, .025, .012)), lipM, 0, .17, FZ, head);
+  if (o.blush) for (const x of [-.21, .21]) mesh(G('blush', () => new THREE.CircleGeometry(.07, 12)), mat('#ff8fab'), x, .2, FZ + .001, head);
+  if (o.freckles) for (const [x, y] of [[-.06, .27], [-.1, .24], [-.03, .23], [.06, .27], [.1, .24], [.03, .23]])
+    mesh(G('frk', () => new THREE.SphereGeometry(.012, 5, 4)), mat('#8d5524'), x, y, FZ + .004, head);
   const hm = mat(o.hair);
-  const hairCap = () => mesh(G('hairCap', () => new THREE.SphereGeometry(.37, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, .95, 1)), hm, 0, .5, -.01, head);
-  if (o.kind === 'short') hairCap();
-  if (o.kind === 'long') {
-    hairCap();
+  if (o.stache === 'stache') mesh(G('stache', () => new THREE.BoxGeometry(.3, .07, .04)), hm, 0, .3, FZ + .01, head);
+  if (o.stache === 'goatee') mesh(G('goatee', () => new THREE.BoxGeometry(.14, .12, .04)), hm, 0, .1, FZ + .005, head);
+  if (o.earrings) for (const x of [-.36, .36]) mesh(G('earring', () => new THREE.SphereGeometry(.05, 8, 6)), gold, x, .16, 0, head);
+
+  // ---- cabelo e chapéus ----
+  const hatCovers = ['cap', 'capBack', 'beanie', 'cowboy', 'party'].includes(o.hat);
+  const hairCap = (r = .37, sy = .95) => mesh(G('hairCap' + r, () => new THREE.SphereGeometry(r, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, sy, 1)), hm, 0, .5, -.01, head);
+  const k = o.kind;
+  if ((k === 'short' || k === 'long' || k === 'pony' || k === 'bun' || k === 'bob' || k === 'pigtails') && !hatCovers) hairCap();
+  if (k === 'buzz' && !hatCovers) hairCap(.355, .8);
+  if (k === 'spiky' && !hatCovers) for (const [x, y, z] of [[0, .62, 0], [-.2, .58, .05], [.2, .58, .05], [-.1, .58, -.2], [.12, .58, -.18]])
+    mesh(G('spike', () => new THREE.ConeGeometry(.1, .3, 8)), hm, x, y + .12, z, head);
+  if (k === 'mohawk' && !hatCovers) mesh(G('mohawk', () => new THREE.BoxGeometry(.1, .34, .64)), hm, 0, .7, -.02, head);
+  if (k === 'afro') mesh(G('afro', () => new THREE.SphereGeometry(.56, 16, 12)), hm, 0, .5, -.02, head);
+  if (k === 'long') {
     mesh(G('hairBack', () => new THREE.BoxGeometry(.74, .85, .14)), hm, 0, .1, -.3, head);
     mesh(G('hairSide', () => new THREE.BoxGeometry(.1, .6, .5)), hm, -.37, .25, -.05, head);
     mesh(G('hairSide'), hm, .37, .25, -.05, head);
   }
-  if (o.kind === 'pony') {
-    hairCap();
+  if (k === 'pony') {
     mesh(G('ponyBall', () => new THREE.SphereGeometry(.15, 10, 8)), hm, 0, .55, -.4, head);
     mesh(G('ponyTail', () => new THREE.BoxGeometry(.14, .6, .14)), hm, 0, .18, -.46, head);
   }
-  if (o.kind === 'bun') {
-    hairCap();
-    mesh(G('bun', () => new THREE.SphereGeometry(.2, 12, 8)), hm, 0, .88, -.05, head);
+  if (k === 'bun') mesh(G('bun', () => new THREE.SphereGeometry(.2, 12, 8)), hm, 0, .88, -.05, head);
+  if (k === 'bob') {
+    mesh(G('bobBack', () => new THREE.BoxGeometry(.78, .5, .16)), hm, 0, .22, -.31, head);
+    for (const x of [-.38, .38]) mesh(G('bobSide', () => new THREE.BoxGeometry(.1, .45, .5)), hm, x, .3, -.04, head);
+    mesh(G('fringe', () => new THREE.BoxGeometry(.62, .08, .06)), hm, 0, .52, .32, head);
   }
-  if (o.kind === 'cap') {
-    mesh(G('capTop', () => new THREE.CylinderGeometry(.37, .37, .2, 20)), shirt, 0, .52, 0, head);
-    mesh(G('capBrim', () => new THREE.BoxGeometry(.5, .04, .42)), shirt, 0, .43, .4, head);
+  if (k === 'pigtails') for (const x of [-.45, .45]) {
+    mesh(G('pigBall', () => new THREE.SphereGeometry(.17, 10, 8)), hm, x, .38, -.05, head);
+    mesh(G('pigTail', () => new THREE.BoxGeometry(.14, .4, .14)), hm, x, .08, -.05, head);
   }
-  if (o.kind === 'afro') mesh(G('afro', () => new THREE.SphereGeometry(.56, 16, 12)), hm, 0, .5, -.02, head);
-  if (o.kind === 'party') {
-    mesh(G('cone', () => new THREE.ConeGeometry(.28, .75, 16)), hm, 0, .95, 0, head);
-    mesh(G('pom', () => new THREE.SphereGeometry(.08, 8, 6)), mat('#ffffff'), 0, 1.35, 0, head);
+  const hatM = mat(o.hatColor);
+  if (o.hat === 'cap' || o.hat === 'capBack') {
+    mesh(G('capTop', () => new THREE.CylinderGeometry(.39, .39, .2, 20)), hatM, 0, .53, 0, head);
+    mesh(G('capBrim', () => new THREE.BoxGeometry(.5, .04, .42)), hatM, 0, .44, o.hat === 'cap' ? .42 : -.4, head);
   }
-  if (o.glasses) mesh(G('glasses', () => new THREE.BoxGeometry(.62, .13, .1)), mat('#111111'), 0, .34, .33, head);
+  if (o.hat === 'beanie') {
+    mesh(G('beanie', () => new THREE.CylinderGeometry(.39, .4, .24, 20)), hatM, 0, .5, 0, head);
+    mesh(G('pom', () => new THREE.SphereGeometry(.09, 8, 6)), mat('#ffffff'), 0, .7, 0, head);
+  }
+  if (o.hat === 'cowboy') {
+    mesh(G('brim', () => new THREE.CylinderGeometry(.64, .64, .04, 24)), mat('#7a4a21'), 0, .5, 0, head);
+    mesh(G('crownH', () => new THREE.CylinderGeometry(.3, .34, .28, 16)), mat('#7a4a21'), 0, .65, 0, head);
+  }
+  if (o.hat === 'party') {
+    mesh(G('cone', () => new THREE.ConeGeometry(.28, .75, 16)), hatM, 0, .95, 0, head);
+    mesh(G('pom', () => new THREE.SphereGeometry(.09, 8, 6)), mat('#ffffff'), 0, 1.35, 0, head);
+  }
+  if (o.hat === 'crown') {
+    mesh(G('crown', () => new THREE.CylinderGeometry(.33, .3, .16, 10)), gold, 0, .64, 0, head);
+    for (const [x, z] of [[.22, 0], [-.22, 0], [0, .22], [0, -.22]]) mesh(G('crownTip', () => new THREE.ConeGeometry(.06, .16, 6)), gold, x, .78, z, head);
+  }
+  if (o.hat === 'headband') mesh(G('band', () => new THREE.TorusGeometry(.36, .03, 6, 24).rotateX(Math.PI / 2)), hatM, 0, .45, 0, head);
+  if (o.hat === 'flower') {
+    for (let i = 0; i < 5; i++) {
+      const a = i / 5 * Math.PI * 2;
+      mesh(G('petal', () => new THREE.SphereGeometry(.06, 8, 6)), mat('#ff70a6'), .3 + Math.cos(a) * .08, .6 + Math.sin(a) * .08, .12, head);
+    }
+    mesh(G('flowerC', () => new THREE.SphereGeometry(.05, 8, 6)), mat('#ffd60a'), .3, .6, .14, head);
+  }
+  if (o.hat === 'bow') {
+    for (const s of [-1, 1]) mesh(G('bowWing', () => new THREE.ConeGeometry(.1, .2, 8).rotateZ(Math.PI / 2)), hatM, .22 + s * .12, .62, .05, head).rotation.y = s * .2;
+    mesh(G('bowC', () => new THREE.SphereGeometry(.06, 8, 6)), hatM, .22, .62, .05, head);
+  }
+
+  // ---- óculos (de sol, redondo, visor) e DJ ----
+  if (o.glasses === 'shades') mesh(G('glasses', () => new THREE.BoxGeometry(.62, .13, .1)), mat('#111111'), 0, .34, .33, head);
+  if (o.glasses === 'round') {
+    const ring = G('gRing', () => new THREE.TorusGeometry(.1, .02, 6, 16));
+    mesh(ring, dark, -.13, .33, .34, head); mesh(ring, dark, .13, .33, .34, head);
+    mesh(G('gBridge', () => new THREE.BoxGeometry(.08, .02, .02)), dark, 0, .34, .34, head);
+  }
+  if (o.glasses === 'visor') mesh(G('visor', () => new THREE.BoxGeometry(.66, .11, .07)), neon(pick([0x22e6ff, 0xff2bd6, 0x80ed99])), 0, .34, .33, head);
   if (o.dj) {
     mesh(G('shades', () => new THREE.BoxGeometry(.64, .15, .1)), mat('#050505'), 0, .34, .33, head);
-    mesh(G('band', () => new THREE.TorusGeometry(.4, .045, 8, 24, Math.PI)), mat('#2b2b3a'), 0, .3, 0, head);
+    mesh(G('djBand', () => new THREE.TorusGeometry(.4, .045, 8, 24, Math.PI)), mat('#2b2b3a'), 0, .3, 0, head);
     const cupG = G('earcup', () => new THREE.CylinderGeometry(.13, .13, .12, 16).rotateZ(Math.PI / 2));
     const cm = neon(0xff2bd6);
     mesh(cupG, cm, -.4, .3, 0, head); mesh(cupG, cm, .4, .3, 0, head);
@@ -680,6 +886,7 @@ function buildFig(o) {
 
   const blob = mesh(G('blob', () => new THREE.PlaneGeometry(1.9, 1.9).rotateX(-Math.PI / 2)), blobMat, 0, .03, 0, root);
   blob.raycast = () => {};
+  root.scale.setScalar(o.scale);
 
   const female = !!o.female;
   const f = {
@@ -687,6 +894,7 @@ function buildFig(o) {
     female, name: o.name || pick(female ? NAMES_F : NAMES_M), isDJ: !!o.dj, staff: !!o.staff,
     state: 'idle', path: [], leaving: false, forced: null, auto: 'pump', hist: [], nextChange: 0, curMove: '',
     group: null, gi: 0, slotYaw: 0, barSlot: null, arrive: null, drinkUntil: 0,
+    up: false, taking: false, tableSlot: null, tableRef: null, tableUntil: 0,
     lag: Math.random() * .12, restYaw: rnd(-.5, .5), faceTarget: 0, walkPhase: 0, targetX: 0, targetZ: 0,
   };
   root.userData.fig = f;
@@ -823,34 +1031,42 @@ function applyPose(f, T, dt, k) {
 const figs = [];
 const groups = [];
 const crowdOf = () => figs.filter(f => !f.isDJ && !f.staff);
-const randomLook = female => female
-  ? { female: true, shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), kind: pick(['long', 'long', 'pony', 'bun', 'short', 'afro']), glasses: Math.random() < .2, skirt: Math.random() < .45 ? pick(SHIRTS) : null }
-  : { female: false, shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), kind: pick(['none', 'short', 'short', 'cap', 'afro', 'party']), glasses: Math.random() < .3 };
 
-const dj = buildFig({ shirt: '#17141f', pants: '#111111', hair: '#111111', kind: 'none', dj: true, name: 'DJ' });
+const dj = buildFig({ shirt: '#17141f', pants: '#111111', hair: '#111111', kind: 'none', dj: true, name: 'DJ', top: 'jacket', inner: '#ff2bd6', shoes: '#111111' });
 dj.root.position.copy(DJ_SPOT);
 dj.targetX = DJ_SPOT.x; dj.targetZ = DJ_SPOT.z;
 figs.push(dj);
 
-const bartender = buildFig({ shirt: '#f4f4f4', pants: '#111111', hair: '#3b2418', kind: 'short', staff: true, name: 'Barman' });
+const bartender = buildFig({ shirt: '#f4f4f4', inner: '#f4f4f4', pants: '#111111', hair: '#3b2418', kind: 'short', staff: true, name: 'Barman', top: 'vest', stache: 'stache', mouth: 'smile', shoes: '#111111' });
 bartender.root.position.set(11.0, 0, BAR.z);
 bartender.root.rotation.y = -PI / 2; bartender.faceTarget = -PI / 2;
 bartender.state = 'staff';
 figs.push(bartender);
 
-function freeSpot() {
+// ponto livre para um boneco ficar (longe de gente, mesa, escada e bar)
+function freeSpot(up) {
   let best = null, bd = -1;
-  for (let n = 0; n < 16; n++) {
-    const x = rnd(-10, 7.2), z = rnd(-2, 9);
-    const d = Math.min(99, ...figs.map(f => Math.hypot(f.root.position.x - x, f.root.position.z - z)));
+  for (let n = 0; n < 40; n++) {
+    let x, z;
+    if (up) { x = rnd(6.9, 11.2); z = rnd(12.9, 21.8); }
+    else {
+      x = rnd(-10.5, 7.6); z = rnd(-2, 20.6);
+      if (x > STAIR.x0 - 1.2 && x < STAIR.x1 + 1.2 && z > STAIR.zTop - 1 && z < STAIR.zBot + 1) continue;   // escada
+      if (x > 5.6 && z > 11.4) continue;                                                                   // debaixo da laje
+      if (x > 7.8 && z > .8 && z < 9.6) continue;                                                          // fila do bar
+    }
+    if (tables.some(t => t.up === !!up && Math.hypot(x - t.x, z - t.z) < t.r + 1.1)) continue;
+    const d = Math.min(99, ...figs.filter(f => !!f.up === !!up).map(f => Math.hypot(f.root.position.x - x, f.root.position.z - z)));
     if (d > bd) { bd = d; best = [x, z]; }
   }
-  return best;
+  return best || (up ? [8, 13.5] : [-6, 3]);
 }
 
-function addPerson(spot) {
-  const f = buildFig(randomLook(Math.random() < .5));
-  f.root.position.set(spot[0], 0, spot[1]);
+function addPerson(spot, up) {
+  const female = Math.random() < .5;
+  const f = buildFig(randomLook(female));
+  f.root.position.set(spot[0], up ? MEZ.y : 0, spot[1]);
+  f.up = !!up;
   f.root.rotation.y = f.restYaw; f.faceTarget = f.restYaw;
   f.nextChange = rnd(0, 8);
   figs.push(f);
@@ -860,12 +1076,13 @@ function addPerson(spot) {
 function detach(f) {
   if (f.group) leaveGroup(f);
   if (f.barSlot) { f.barSlot.occ = null; f.barSlot = null; }
-  f.arrive = null;
+  if (f.tableSlot) { f.tableSlot.occ = null; f.tableSlot = null; f.tableRef = null; }
+  f.arrive = null; f.taking = false;
 }
 
 function enterPerson() {
-  if (crowdOf().length > 24) return;
-  const f = addPerson(freeSpot());
+  if (crowdOf().length >= 30) return;
+  const f = addPerson(freeSpot(false), false);
   const [sx, sz] = [f.root.position.x, f.root.position.z];
   f.root.position.set(-17, 0, ROOM.doorZ + rnd(-.5, .5));
   f.state = 'walk'; f.leaving = false;
@@ -875,12 +1092,13 @@ function enterPerson() {
 
 function leavePerson(f) {
   if (!f) {
-    const c = crowdOf().filter(p => !p.leaving && p !== sel);
-    if (c.length <= 3) return;
+    const c = crowdOf().filter(p => !p.leaving && !p.up && p !== sel);
+    if (c.length <= 4) return;
     f = pick(c);
   }
   if (f.isDJ || f.staff || f.leaving) return;
   detach(f);
+  if (f.up) { sendDown(f, true); return; }
   f.leaving = true; f.state = 'walk';
   f.path = [new THREE.Vector3(-9.6, 0, ROOM.doorZ + rnd(-.4, .4)), new THREE.Vector3(-17.5, 0, ROOM.doorZ + rnd(-.4, .4))];
 }
@@ -897,10 +1115,11 @@ function sendToBar(f) {
   const free = barSlots.filter(s => !s.occ);
   if (!free.length) return false;
   if (!f) {
-    const c = figs.filter(p => !p.staff && !p.isDJ && p.state === 'idle' && !p.leaving && p !== sel);
+    const c = figs.filter(p => !p.staff && !p.isDJ && p.state === 'idle' && !p.leaving && !p.up && p !== sel);
     if (!c.length) return false;
     f = pick(c);
   }
+  if (f.up || f.isDJ || f.staff) return false;
   const slot = pick(free);
   detach(f);
   slot.occ = f; f.barSlot = slot; f.arrive = 'bar';
@@ -910,9 +1129,71 @@ function sendToBar(f) {
 }
 function leaveBar(f) {
   if (f.barSlot) { f.barSlot.occ = null; f.barSlot = null; }
-  const [x, z] = freeSpot();
+  const [x, z] = freeSpot(false);
   f.restYaw = rnd(-.5, .5);
   f.state = 'walk'; f.path = [new THREE.Vector3(x, 0, z)];
+}
+
+// ---------- mesas: bonecos dançam em cima ----------
+function sendToTable(f) {
+  const cand = f ? [f] : figs.filter(p => !p.staff && !p.isDJ && p.state === 'idle' && !p.leaving && p !== sel);
+  for (let n = 0; n < 8 && cand.length; n++) {
+    const c = f || pick(cand);
+    if (c.isDJ || c.staff) return false;
+    const free = tables.filter(t => t.up === !!c.up && t.slots.some(s => !s.occ));
+    if (!free.length) { if (f) return false; continue; }
+    const t = pick(free), slot = pick(t.slots.filter(s => !s.occ));
+    detach(c);
+    slot.occ = c; c.tableSlot = slot; c.tableRef = t; c.arrive = 'table';
+    c.state = 'walk';
+    const a = Math.atan2(c.root.position.z - t.z, c.root.position.x - t.x);
+    c.path = [new THREE.Vector3(t.x + Math.cos(a) * (t.r + .8), 0, t.z + Math.sin(a) * (t.r + .8)), new THREE.Vector3(slot.x, 0, slot.z)];
+    return true;
+  }
+  return false;
+}
+function leaveTable(f) {
+  const t = f.tableRef;
+  if (f.tableSlot) { f.tableSlot.occ = null; f.tableSlot = null; }
+  f.tableRef = null;
+  const [x, z] = freeSpot(f.up);
+  f.restYaw = rnd(-.5, .5);
+  f.state = 'walk'; f.path = [new THREE.Vector3(x, 0, z)];
+}
+
+// ---------- escada para o 2º andar ----------
+function sendUp(f) {
+  if (!f) {
+    const c = figs.filter(p => !p.staff && !p.isDJ && p.state === 'idle' && !p.leaving && !p.up && p !== sel);
+    if (!c.length) return false;
+    f = pick(c);
+  }
+  if (f.up || f.isDJ || f.staff) return false;
+  const [x, z] = freeSpot(true);
+  detach(f);
+  const top = new THREE.Vector3(4.7, 0, STAIR.zTop + .3); top.setUp = true;
+  f.taking = true;
+  f.path = [new THREE.Vector3(4.7, 0, STAIR.zBot + .2), top, new THREE.Vector3(x, 0, z)];
+  f.state = 'walk';
+  return true;
+}
+function sendDown(f, thenLeave) {
+  if (!f) {
+    const c = figs.filter(p => !p.staff && p.state === 'idle' && !p.leaving && p.up && p !== sel);
+    if (!c.length) return false;
+    f = pick(c);
+  }
+  if (!f.up) return false;
+  detach(f);
+  const mid = new THREE.Vector3(4.7, 0, STAIR.zTop + .3); mid.setUp = false;
+  f.taking = true;
+  f.path = [new THREE.Vector3(7, 0, 13), mid, new THREE.Vector3(4.7, 0, STAIR.zBot + .2)];
+  if (thenLeave) {
+    f.leaving = true;
+    f.path.push(new THREE.Vector3(-9.6, 0, ROOM.doorZ), new THREE.Vector3(-17.5, 0, ROOM.doorZ));
+  } else { const [x, z] = freeSpot(false); f.path.push(new THREE.Vector3(x, 0, z)); }
+  f.state = 'walk';
+  return true;
 }
 
 // ---------- coreografia em grupo ----------
@@ -928,7 +1209,7 @@ function dissolve(g) {
   const i = groups.indexOf(g); if (i >= 0) groups.splice(i, 1);
 }
 function formGroup(kind) {
-  const cand = crowdOf().filter(f => f.state === 'idle' && !f.group && !f.leaving && f !== sel);
+  const cand = crowdOf().filter(f => f.state === 'idle' && !f.group && !f.leaving && !f.up && f !== sel);
   if (cand.length < 2) return;
   kind = kind || pick(['linha', 'onda', 'casal', 'roda', 'funk']);
   let pool = cand;
@@ -940,26 +1221,85 @@ function formGroup(kind) {
     .sort((a, b) => Math.hypot(a.root.position.x - lp.x, a.root.position.z - lp.z) - Math.hypot(b.root.position.x - lp.x, b.root.position.z - lp.z))
     .slice(0, size - 1)];
   const n = members.length;
-  const cx = clamp(members.reduce((s, m) => s + m.root.position.x, 0) / n, -6, 6);
-  const cz = clamp(members.reduce((s, m) => s + m.root.position.z, 0) / n, 0, 7.5);
+  let cx = clamp(members.reduce((s, m) => s + m.root.position.x, 0) / n, -7.5, 2.5);
+  let cz = clamp(members.reduce((s, m) => s + m.root.position.z, 0) / n, 0, 18);
+  for (let i = 0; i < 6 && tables.some(t => !t.up && Math.hypot(cx - t.x, cz - t.z) < t.r + 3.2); i++) { cx += 3.2; cz -= 1; }
   const move = kind === 'funk' ? 'funk' : kind === 'casal' ? 'casal'
     : pick(kind === 'roda' ? ['palmas', 'marcha', 'pump', 'disco'] : kind === 'onda' ? ['pump', 'onda', 'pulo'] : ['pump', 'disco', 'twist', 'marcha', 'polichinelo', 'palmas']);
   const g = { kind, move, members, end: S.beatPos + 16 + 8 * Math.floor(Math.random() * 3) };
   if (kind !== 'roda') members.sort((a, b) => a.root.position.x - b.root.position.x);
   members.forEach((f, i) => {
     let x, z, yaw;
-    if (kind === 'casal') { x = cx + (i ? .85 : -.85); z = cz; yaw = i ? -PI / 2 : PI / 2; }
+    if (kind === 'casal') { x = cx + (i ? .95 : -.95); z = cz; yaw = i ? -PI / 2 : PI / 2; }
     else if (kind === 'roda') {
-      const r = .9 + n * .28, a = 2 * PI * i / n;
+      const r = 1.1 + n * .3, a = 2 * PI * i / n;
       x = cx + r * sn(a); z = cz + r * Math.cos(a); yaw = Math.atan2(cx - x, cz - z);
-    } else { x = cx + (i - (n - 1) / 2) * 1.7; z = cz; yaw = 0; }
+    } else { x = cx + (i - (n - 1) / 2) * 1.8; z = cz; yaw = 0; }
     f.group = g; f.gi = i; f.slotYaw = yaw;
     f.state = 'walk'; f.path = [new THREE.Vector3(x, 0, z)];
   });
   groups.push(g);
 }
 
-for (let i = 0; i < 12; i++) addPerson(freeSpot());
+// ---------- física: um boneco não atravessa o outro ----------
+const radOf = f => .62 + .55 * f.cur.lay;
+const isMobile = f => {
+  if (f.state === 'staff' || f.state === 'table' || f.state === 'held') return false;
+  if (f.isDJ && Math.hypot(f.root.position.x - DJ_SPOT.x, f.root.position.z - DJ_SPOT.z) < 2.2) return false;
+  return true;
+};
+
+// paredes, balcão, cabine, mesas, colunas e escada
+function constrain(f) {
+  const p = f.root.position;
+  const inDoor = Math.abs(p.z - ROOM.doorZ) < 1.0;
+  if (p.x >= -11.4) { p.x = Math.min(p.x, 11.4); p.z = clamp(p.z, -7.4, 22.5); }
+  else if (p.x > -12.45 && !inDoor) p.x = -11.4;
+  if (f.up && !f.taking) {
+    if (!f.isMe) { p.x = clamp(p.x, MEZ.x0 + .3, 11.4); p.z = clamp(p.z, MEZ.z0 + .4, 22.3); }
+    else if (p.x > MEZ.x0) { p.x = Math.min(p.x, 11.6); p.z = clamp(p.z, MEZ.z0 + .1, 22.3); }
+  }
+  if (p.x < -11.4) return;
+  if (!f.staff && p.x > 9.0 && p.z > 1.3 && p.z < 9.1) p.x = 9.0;                                  // balcão do bar
+  if (!f.isDJ && Math.abs(p.x) < 2.6 && p.z > -6.15 && p.z < -4.4) p.z = p.z > -5.3 ? -4.35 : -6.2;   // cabine do DJ
+  for (const t of tables) {
+    if (t.up !== !!f.up || f.state === 'table' || f.tableRef === t) continue;
+    const dx = p.x - t.x, dz = p.z - t.z, d = Math.hypot(dx, dz), R = t.r + .5;
+    if (d < R && d > 1e-4) { p.x = t.x + dx / d * R; p.z = t.z + dz / d * R; }
+  }
+  if (!f.up) for (const c of columns) {
+    const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz);
+    if (d < .75 && d > 1e-4) { p.x = c.x + dx / d * .75; p.z = c.z + dz / d * .75; }
+  }
+  if (!f.isMe && !f.taking && !f.up && p.y < .3 && inStairs(p.x, p.z)) p.x = p.x < 4.7 ? STAIR.x0 - .5 : STAIR.x1 + .5;   // escada só pelas pontas
+}
+
+function stepPhysics() {
+  const n = figs.length;
+  for (let i = 0; i < n; i++) {
+    const a = figs[i]; if (a.state === 'table') continue;
+    for (let j = i + 1; j < n; j++) {
+      const b = figs[j]; if (b.state === 'table') continue;
+      const pa = a.root.position, pb = b.root.position;
+      if (Math.abs(pa.y - pb.y) > 1) continue;
+      let dx = pa.x - pb.x, dz = pa.z - pb.z, d = Math.hypot(dx, dz);
+      const min = radOf(a) + radOf(b);
+      if (d >= min) continue;
+      const ma = isMobile(a), mb = isMobile(b);
+      if (!ma && !mb) continue;
+      if (d < 1e-3) { dx = Math.random() - .5; dz = Math.random() - .5; d = Math.hypot(dx, dz); }
+      const push = (min - d) * .5, nx = dx / d, nz = dz / d, sa = ma && mb ? .5 : ma ? 1 : 0, sb = ma && mb ? .5 : mb ? 1 : 0;
+      pa.x += nx * push * sa * 2; pa.z += nz * push * sa * 2;
+      pb.x -= nx * push * sb * 2; pb.z -= nz * push * sb * 2;
+    }
+  }
+  for (const f of figs) if (isMobile(f)) constrain(f);
+}
+
+const tablesFree = () => tables.reduce((s, t) => s + t.slots.filter(x => !x.occ).length, 0);
+
+for (let i = 0; i < 18; i++) addPerson(freeSpot(false), false);
+for (let i = 0; i < 3; i++) addPerson(freeSpot(true), true);
 
 // ---------- seleção e arrasto ----------
 let sel = null;
@@ -980,12 +1320,16 @@ function select(f) {
   if (!f) return;
   $('selName').textContent = f.name + (f.isDJ ? ' (DJ)' : f.female ? ' ♀' : ' ♂');
   selDance.value = f.forced || '';
-  $('selLeave').disabled = f.isDJ; $('selBar').disabled = f.isDJ;
+  const lock = f.isDJ || f.isMe;
+  $('selLeave').disabled = lock; $('selBar').disabled = lock; $('selTable').disabled = lock; $('selUp').disabled = lock;
+  $('selUp').textContent = f.up ? '⬇ Descer' : '⬆ Subir pro 2º andar';
 }
 selDance.onchange = () => { if (sel) sel.forced = selDance.value || null; };
 $('selClose').onclick = () => select(null);
 $('selLeave').onclick = () => { if (sel) { const f = sel; select(null); leavePerson(f); } };
-$('selBar').onclick = () => { if (sel && !sel.isDJ) { const f = sel; select(null); if (!sendToBar(f)) say('O bar está lotado!', true); } };
+$('selBar').onclick = () => { if (sel && !sel.isDJ) { const f = sel; select(null); if (f.up) sendDown(f); else if (!sendToBar(f)) say('O bar está lotado!', true); } };
+$('selTable').onclick = () => { if (sel) { const f = sel; select(null); if (!sendToTable(f)) say('Não há lugar livre nas mesas deste andar.', true); } };
+$('selUp').onclick = () => { if (sel) { const f = sel; select(null); if (f.up) sendDown(f); else sendUp(f); } };
 
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -1016,6 +1360,7 @@ canvas.addEventListener('pointerdown', e => {
   if (f) {
     controls.enabled = false;
     select(f);
+    dragPlane.constant = -(f.up ? MEZ.y : 0);
     if (ray.ray.intersectPlane(dragPlane, hitPt)) { drag.ox = f.root.position.x - hitPt.x; drag.oz = f.root.position.z - hitPt.z; }
   }
 });
@@ -1026,9 +1371,14 @@ addEventListener('pointermove', e => {
   if (!drag.moved) { drag.moved = true; detach(f); f.path = []; f.leaving = false; f.state = 'held'; }
   setNdc(e);
   if (ray.ray.intersectPlane(dragPlane, hitPt)) {
-    f.targetX = clamp(hitPt.x + drag.ox, -10.8, 10.8);
-    f.targetZ = clamp(hitPt.z + drag.oz, -7.4, 9.8);
-    if (!f.isDJ && f.targetZ > 1.3 && f.targetZ < 9.1 && f.targetX > 9.0) f.targetX = 9.0;   // balcão do bar
+    if (f.up) {
+      f.targetX = clamp(hitPt.x + drag.ox, MEZ.x0 + .5, 11.4);
+      f.targetZ = clamp(hitPt.z + drag.oz, MEZ.z0 + .6, 22.4);
+    } else {
+      f.targetX = clamp(hitPt.x + drag.ox, -10.8, 10.8);
+      f.targetZ = clamp(hitPt.z + drag.oz, -7.4, 22.4);
+      if (!f.isDJ && f.targetZ > 1.3 && f.targetZ < 9.1 && f.targetX > 9.0) f.targetX = 9.0;   // balcão do bar
+    }
   }
 });
 function endDrag(e) {
@@ -1042,9 +1392,9 @@ addEventListener('pointerup', endDrag);
 addEventListener('pointercancel', () => endDrag(null));
 
 const controls = new OrbitControls(camera, canvas);
-controls.target.set(0, 2.2, -1.5);
+controls.target.set(0, 2, 5);
 controls.enableDamping = true; controls.dampingFactor = .08;
-controls.minDistance = 6; controls.maxDistance = 80;
+controls.minDistance = 6; controls.maxDistance = 90;
 controls.maxPolarAngle = Math.PI / 2 - .04;
 controls.update();
 
@@ -1056,14 +1406,19 @@ const fpEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 const HINT_ORBIT = $('hint').textContent;
 const HINT_FP = 'W/S ou ↑/↓ andar · A/D de lado · ←/→ girar · mouse para olhar (clique) · Shift corre · V sai';
 
-function canStand(x, z) {
-  const inside = x > -11.4 && x < 11.4 && z > -7.4 && z < 10.2;
+function canStandFP(x, z, px, pz) {
+  const inside = x > -11.4 && x < 11.4 && z > -7.4 && z < 22.5;
   const door = x <= -11.4 && x > -16 && Math.abs(z - ROOM.doorZ) < 1.0;
-  const walk = x <= -12.7 && x > -16 && z > -14 && z < 22;                 // calçada lá fora
+  const walk = x <= -12.7 && x > -16 && z > -14 && z < 26;                 // calçada lá fora
   if (!(inside || door || walk)) return false;
   if (inside) {
     if (x > 9.0 && z > 1.3 && z < 9.1) return false;                       // balcão do bar
     if (Math.abs(x) < 2.6 && z > -6.15 && z < -4.4) return false;          // cabine do DJ
+    for (const t of tables) if (t.up === me.up && Math.hypot(x - t.x, z - t.z) < t.r + .3) return false;
+    if (!me.up) for (const c of columns) if (Math.hypot(x - c.x, z - c.z) < .5) return false;
+    const ins = inStairs(x, z), was = inStairs(px, pz);
+    if (ins !== was && !(z > STAIR.zBot - 1.5 || z < STAIR.zTop + 1.5)) return false;     // escada: só entra e sai pelas pontas
+    if (me.up && !ins && !(x >= MEZ.x0 + .05 && x <= 11.6 && z >= MEZ.z0 + .1 && z <= 22.3)) return false;   // não pula do 2º andar
   }
   return true;
 }
@@ -1074,8 +1429,9 @@ function setFP(on) {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   if (on) {
     if (!me) {
-      me = buildFig({ shirt: '#22e6ff', pants: '#1d3557', hair: '#1a1a1a', kind: 'cap', name: 'Você', staff: true });
-      me.root.position.set(0, 0, 8.5); me.root.rotation.y = Math.PI; me.faceTarget = Math.PI;
+      me = buildFig({ shirt: '#22e6ff', pants: '#1d3557', hair: '#1a1a1a', kind: 'short', hat: 'cap', hatColor: '#ff2bd6', name: 'Você', staff: true, top: 'jersey', inner: '#ffffff', mouth: 'grin' });
+      me.isMe = true;
+      me.root.position.set(0, 0, 16); me.root.rotation.y = Math.PI; me.faceTarget = Math.PI;
       figs.push(me);
     }
     select(null); controls.enabled = false;
@@ -1086,8 +1442,8 @@ function setFP(on) {
     if (document.pointerLockElement) document.exitPointerLock();
     const p = me.root.position;
     controls.enabled = true;
-    controls.target.set(p.x, 1.8, p.z);
-    camera.position.set(p.x, 6.5, p.z + 9.5);
+    controls.target.set(p.x, p.y + 1.8, p.z);
+    camera.position.set(p.x, p.y + 6.5, p.z + 9.5);
     me.root.visible = true; me.state = 'idle';
     controls.update();
     $('hint').textContent = HINT_ORBIT; $('fpBtn').textContent = '🚶 1ª pessoa';
@@ -1123,10 +1479,11 @@ function updateFP(dt) {
   if (len > 0) {
     const sp = run ? 7.5 : 4.2;
     mx = mx / len * sp * dt; mz = mz / len * sp * dt;
-    if (canStand(p.x + mx, p.z)) p.x += mx;
-    if (canStand(p.x, p.z + mz)) p.z += mz;
+    if (canStandFP(p.x + mx, p.z, p.x, p.z)) p.x += mx;
+    if (canStandFP(p.x, p.z + mz, p.x, p.z)) p.z += mz;
     fp.bob += dt * sp * 2.2;
   }
+  if (inStairs(p.x, p.z)) { if (p.z < STAIR.zTop + 2) me.up = true; else if (p.z > STAIR.zBot - 1.6) me.up = false; }
   me.state = len > 0 ? 'player' : 'idle';
   me.speedK = run ? 1.8 : 1;
   me.faceTarget = fp.yaw;
@@ -1188,6 +1545,8 @@ $('remp').onclick = () => leavePerson(null);
 $('puff').onclick = () => emitSmoke(true);
 $('goBar').onclick = () => { if (!sendToBar(null)) say('O bar está lotado (ou ninguém disponível).', true); };
 $('goGroup').onclick = () => formGroup();
+$('goTable').onclick = () => { if (!sendToTable(null)) say('Todas as mesas estão ocupadas.', true); };
+$('goUp').onclick = () => { if (!sendUp(null)) say('Ninguém disponível para subir.', true); };
 $('styleSel').onchange = e => { S.lock = e.target.value; if (S.lock) setStyle(S.lock); };
 
 // ---------- loop ----------
@@ -1220,33 +1579,43 @@ function frame(ms) {
     else if (S.beatPos >= S.setNext || S.beatPos < S.setNext - 100) setStyle(pick(Object.keys(SETS).filter(k => k !== S.set)));
     for (const g of groups.slice()) if (S.beatPos >= g.end || S.beatPos < g.end - 120) dissolve(g);
     S.groupT -= dt;
-    if (S.groupT <= 0) { S.groupT = rnd(7, 14); if (groups.length < 2) formGroup(); }
+    if (S.groupT <= 0) { S.groupT = rnd(7, 14); if (groups.length < 3) formGroup(); }
   }
 
-  // fluxo de gente + bar
+  // fluxo de gente, bar, mesas e 2º andar
   if ($('flow').checked) {
     S.flowT -= dt;
     if (S.flowT <= 0) {
-      S.flowT = rnd(4, 9);
+      S.flowT = rnd(3, 7);
       const n = crowdOf().length;
-      if (n < 8) enterPerson(); else if (n > 17) leavePerson(null); else (Math.random() < .55 ? enterPerson() : leavePerson(null));
+      if (n < 16) enterPerson(); else if (n > 28) leavePerson(null); else (Math.random() < .55 ? enterPerson() : leavePerson(null));
     }
-  }
-  S.barT -= dt;
-  if (S.barT <= 0) {
-    S.barT = rnd(5, 11);
-    if (barSlots.filter(s => s.occ).length < 3 || Math.random() < .2) sendToBar(null);
+    S.barT -= dt;
+    if (S.barT <= 0) { S.barT = rnd(5, 11); if (barSlots.filter(s => s.occ).length < 3 || Math.random() < .2) sendToBar(null); }
+    S.tableT -= dt;
+    if (S.tableT <= 0) {
+      S.tableT = rnd(5, 10);
+      const onTables = tables.reduce((s, tb) => s + tb.slots.filter(x => x.occ).length, 0);
+      if (onTables < 6 && tablesFree() > 0) sendToTable(null);
+    }
+    S.upT -= dt;
+    if (S.upT <= 0) {
+      S.upT = rnd(6, 12);
+      const upN = crowdOf().filter(p => p.up || (p.taking && p.state === 'walk')).length;
+      if (upN < 8 && Math.random() < .6) sendUp(null); else if (upN > 3) sendDown(null);
+    }
   }
 
   // personagens
   if (fp.on) updateFP(dt);
   for (const f of figs.slice()) updateFig(f, dt, t, active);
+  stepPhysics();
 
   // luzes
   const hue = S.hue;
   for (const s of spots) {
     const i = s.i;
-    const tx = 8 * Math.sin(S.sweep + i * 1.1), tz = 3 + 4.5 * Math.cos(S.sweep * .7 + i * 1.7);
+    const tx = 10 * Math.sin(S.sweep + i * 1.1), tz = 8 + 9 * Math.cos(S.sweep * .7 + i * 1.7);
     s.light.target.position.set(tx, 0, tz);
     const gate = (i + S.beatCount) % 2 === 0 ? 1 : .45;
     tmpColor.setHSL(((hue + i * 55) % 360) / 360, 1, .55);
@@ -1260,6 +1629,8 @@ function frame(ms) {
     s.beam.material.opacity = .04 + (.1 + .5 * S.pulse * gate) * S.dance;
   }
   ball.rotation.y += dt * .6 * S.dance;
+  mezLight.color.setHSL(((hue + 120) % 360) / 360, 1, .55);
+  mezLight.intensity = 25 + 120 * S.pulse * S.dance;
 
   // piso
   for (const tl of tiles) {
@@ -1271,6 +1642,7 @@ function frame(ms) {
   tmpColor.setHSL(hue / 360, 1, .6);
   doorNeon.color.copy(tmpColor); stageEdge.color.copy(tmpColor); boothEdge.color.copy(tmpColor);
   tmpColor.setHSL(((hue + 160) % 360) / 360, 1, .62); barNeon.color.copy(tmpColor);
+  tmpColor.setHSL(((hue + 90) % 360) / 360, 1, .6); tableNeon.color.copy(tmpColor); mezNeon.color.copy(tmpColor);
   decks[0].rotation.y = -S.spinL; decks[1].rotation.y = -S.spinR;
   mixBars.forEach((mb, i) => { mb.b.scale.y = .2 + .8 * S.pulse * S.dance * (i % 2 ? .7 : 1); mb.m.color.setHSL(((hue + i * 30) % 360) / 360, .95, .58); });
 
@@ -1285,8 +1657,8 @@ function frame(ms) {
   if (sel) {
     ring.position.set(sel.root.position.x, sel.root.position.y + .05, sel.root.position.z);
     const sc = 1 + .08 * Math.sin(t * 5); ring.scale.set(sc, 1, sc);
-    const now = sel.state === 'drink' ? '🍹 Bebendo no bar' : sel.state === 'walk' ? '🚶 Andando'
-      : sel.state === 'held' ? '✋ Sendo carregado' : !active ? '⏸ Esperando a música'
+    const now = sel.state === 'drink' ? '🍹 Bebendo no bar' : sel.state === 'walk' ? (sel.taking ? '🪜 Na escada' : '🚶 Andando')
+      : sel.state === 'held' ? '✋ Sendo carregado' : sel.state === 'table' ? '🪑 Dançando na mesa' : !active ? '⏸ Esperando a música'
       : (sel.group ? '👯 ' : '💃 ') + (MOVE_LABEL[sel.curMove] || '');
     if (now !== lastNow) { $('selNow').textContent = now; lastNow = now; }
   }
@@ -1303,19 +1675,31 @@ function updateFig(f, dt, t, active) {
     T = bartenderPose(t, barSlots.some(s => s.occ && s.occ.state === 'drink')); k = 10;
   } else if (f.state === 'walk') {
     const tgt = f.path[0];
-    if (!tgt) { f.state = 'idle'; }
+    if (!tgt) { f.state = 'idle'; f.taking = false; }
     else {
       const dx = tgt.x - p.x, dz = tgt.z - p.z, dist = Math.hypot(dx, dz), step = 2.6 * dt;
-      f.faceTarget = Math.atan2(dx, dz);
+      // desvia de quem está no caminho
+      let rx = 0, rz = 0;
+      for (const o of figs) {
+        if (o === f || o.state === 'table' || Math.abs(o.root.position.y - p.y) > 1) continue;
+        const ox = p.x - o.root.position.x, oz = p.z - o.root.position.z, d2 = ox * ox + oz * oz;
+        if (d2 < 3.6 && d2 > 1e-4) { const d = Math.sqrt(d2), w = (1.9 - d) / 1.9; rx += ox / d * w; rz += oz / d * w; }
+      }
+      let vx = dx / (dist || 1) + rx * 1.1, vz = dz / (dist || 1) + rz * 1.1;
+      const vl = Math.hypot(vx, vz) || 1; vx /= vl; vz /= vl;
+      f.faceTarget = Math.atan2(vx, vz);
       f.walkPhase += dt * 8.5;
-      if (dist <= step) {
-        p.x = tgt.x; p.z = tgt.z; f.path.shift();
+      if (dist <= Math.max(step, .3)) {
+        if (tgt.setUp !== undefined) f.up = tgt.setUp;
+        f.path.shift();
         if (!f.path.length) {
+          f.taking = false;
           if (f.leaving) { removeFig(f); return; }
           if (f.arrive === 'bar') { f.state = 'drink'; f.arrive = null; f.faceTarget = PI / 2; f.drinkUntil = t + rnd(8, 15); }
+          else if (f.arrive === 'table') { p.x = tgt.x; p.z = tgt.z; f.state = 'table'; f.arrive = null; f.faceTarget = rnd(-.4, .4); f.tableUntil = t + rnd(10, 20); }
           else { f.state = 'idle'; f.faceTarget = f.group ? f.slotYaw : f.restYaw; }
         }
-      } else { p.x += dx / dist * step; p.z += dz / dist * step; }
+      } else { p.x += vx * step; p.z += vz * step; }
       T = walkPose(f); k = 18;
     }
   } else if (f.state === 'player') {
@@ -1331,8 +1715,9 @@ function updateFig(f, dt, t, active) {
     T = drinkPose(f, t); k = 10;
     if (t > f.drinkUntil) leaveBar(f);
   }
+  if (f.state === 'table' && t > f.tableUntil) leaveTable(f);
 
-  if (f.state === 'idle') {
+  if (f.state === 'idle' || f.state === 'table') {
     const nearBooth = f.isDJ && Math.hypot(p.x - DJ_SPOT.x, p.z - DJ_SPOT.z) < 2.2;
     if (!active) { T = nearBooth ? DJ_IDLE : {}; k = 8; f.curMove = ''; }
     else if (nearBooth) T = djMix(S.beatPos + .08, t);
@@ -1350,12 +1735,14 @@ function updateFig(f, dt, t, active) {
         }
         b = S.beatPos + .1 + f.lag;
       }
+      if (f.state === 'table' && (name === 'chao' || name === 'mortal')) name = 'pulo';
       T = MOVES[name](b); k = MOVE_K[name] || 18; f.curMove = name;
     }
   }
 
   f.cup.visible = f.state === 'drink';
-  p.y += (groundY(p.z) - p.y) * Math.min(1, dt * 10);
+  const ty = groundYFor(f.up, p.x, p.z) + (f.state === 'table' ? TABLE_TOP : 0);
+  p.y += (ty - p.y) * Math.min(1, dt * 10);
   f.root.rotation.y += wrapPi(f.faceTarget - f.root.rotation.y) * Math.min(1, dt * 8);
   if (f.state === 'held') T = { ...T, bob: (T.bob || 0) + .5 };
   applyPose(f, T, dt, k);
