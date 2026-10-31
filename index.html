@@ -9,13 +9,25 @@
   :root{--bg:#07050f;--panel:rgba(15,10,30,.82);--ink:#f4efff;--mute:#a79bcc;--neon:#ff2bd6;--neon2:#22e6ff}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,"Segoe UI",sans-serif;overflow:hidden}
-  #gl{position:fixed;inset:0;display:block;touch-action:none}
-  #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+  #css3d{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  #gl{position:fixed;inset:0;display:block;touch-action:none;z-index:1}
+  #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
+  #bubbles{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:4}
+  .bubble{position:absolute;left:0;top:0;background:#fff;color:#14111f;padding:6px 10px;border-radius:12px;font:600 13px/1.25 system-ui,sans-serif;max-width:210px;box-shadow:0 4px 14px rgba(0,0,0,.55);will-change:transform}
+  .bubble::after{content:'';position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-top-color:#fff;border-bottom:0}
+  #results{display:none;flex-basis:100%;gap:8px;overflow-x:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:#6a5acd transparent}
+  .card{flex:0 0 150px;display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;padding:6px;border-radius:10px}
+  .card img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#000}
+  .card span{font-size:12px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card small{font-size:11px;color:var(--mute)}
+  .card.close{flex:0 0 auto;align-self:center}
+  #ytScreen{width:1280px;height:720px;background:#000}
+  #ytScreen iframe{width:100%;height:100%;border:0}
   .panel{background:var(--panel);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);border-radius:14px}
-  #bar{position:fixed;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:7px 10px}
+  #bar{z-index:5;position:fixed;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:7px 10px}
   #url{flex:1 1 280px;min-width:200px;padding:7px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.35);color:var(--ink);font:inherit}
   #url:focus{outline:2px solid var(--neon2);outline-offset:1px}
-  button,select{padding:6px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:var(--ink);font:inherit;cursor:pointer}
+  button,select{padding:5px 9px;font-size:13px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:var(--ink);font:inherit;cursor:pointer}
   button:hover:not(:disabled){background:rgba(255,255,255,.16)}
   button:disabled,input:disabled{opacity:.45;cursor:not-allowed}
   #go{background:linear-gradient(135deg,var(--neon),#7b2bff);border-color:transparent;font-weight:600}
@@ -28,16 +40,13 @@
   #badge.on{background:rgba(34,230,255,.18);color:var(--neon2)}
   #msg{flex-basis:100%;font-size:12px;color:var(--mute);min-height:1.4em}
   #msg.err{color:#ff8da1}
-  #sel{position:fixed;left:12px;bottom:12px;display:none;flex-direction:column;gap:8px;padding:12px;width:240px}
+  #sel{z-index:5;position:fixed;left:12px;bottom:12px;display:none;flex-direction:column;gap:8px;padding:12px;width:240px}
   #sel .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
   #sel select{flex:1}
   #selName{font-weight:600}
-  #hint{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;color:var(--mute);pointer-events:none;
+  #hint{z-index:5;position:fixed;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;color:var(--mute);pointer-events:none;
     text-shadow:0 1px 4px #000;white-space:nowrap}
-  #ytwrap{position:fixed;right:12px;bottom:12px;width:288px;height:162px;border-radius:12px;overflow:hidden;display:none;
-    border:2px solid rgba(255,255,255,.25);box-shadow:0 8px 30px rgba(0,0,0,.6);background:#000}
-  #ytwrap iframe{width:100%;height:100%}
-  @media (max-width:760px){#hint{display:none}#ytwrap{width:200px;height:112px}}
+  @media (max-width:760px){#hint{display:none}}
 </style>
 <script type="importmap">
 {"imports":{
@@ -51,8 +60,8 @@
 <div id="flash"></div>
 
 <div id="bar" class="panel">
-  <input id="url" type="text" placeholder="Cole aqui o link do YouTube (música ou clipe)…" autocomplete="off" spellcheck="false">
-  <button id="go">▶ Tocar</button>
+  <input id="url" type="text" placeholder="Digite o nome da música ou cole o link do YouTube…" autocomplete="off" spellcheck="false">
+  <button id="go">🔍 Buscar / Tocar</button>
   <div class="grp">Sincronia
     <select id="mode">
       <option value="bpm">BPM + TAP</option>
@@ -73,12 +82,15 @@
   <button id="goGroup" title="Forma um grupo dançando junto">👯 Juntar</button>
   <button id="goTable" title="Manda alguém dançar em cima de uma mesa">🪑 Mesa</button>
   <button id="goUp" title="Manda alguém subir ao 2º andar">⬆ 2º andar</button>
+  <button id="goScreen" title="Câmera de frente para o telão">📺 Telão</button>
   <button id="fpBtn" title="Andar pela balada com WASD / setas (tecla V)">🚶 1ª pessoa</button>
   <button id="puff" title="Solta uma rajada de fumaça">💨</button>
+  <label class="chk"><input id="chat" type="checkbox" checked> papo</label>
   <label class="chk"><input id="flow" type="checkbox" checked> fluxo</label>
   <label class="chk"><input id="smoke" type="checkbox" checked> fumaça</label>
   <label class="chk"><input id="strobe" type="checkbox" checked> strobo</label>
   <span id="badge">⏸ parado</span>
+  <div id="results"></div>
   <div id="msg">Cole o link, aperte Tocar e, se a batida estiver fora do tempo, use o TAP no ritmo da música.</div>
 </div>
 
@@ -93,11 +105,13 @@
 </div>
 
 <div id="hint">Clique e arraste um boneco para movê-lo · arraste o fundo para girar a câmera · scroll = zoom</div>
-<div id="ytwrap"><div id="yt"></div></div>
+<div id="bubbles"></div>
+<div id="ytScreen" style="display:none"><div id="yt"></div></div>
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
 const $ = id => document.getElementById(id);
 const frac = x => x - Math.floor(x);
@@ -110,7 +124,7 @@ const wrapPi = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI)
 const S = {
   mode: 'bpm', playing: false, demo: false, live: false,
   bpm: 124, offset: 0, beatPos: 0, lastIdx: null, beatCount: 0,
-  pulse: 0, strobe: 0, hue: 290, dance: 0, sweep: 0, spinL: 0, spinR: 0, flowT: 3, groupT: 6, barT: 4, carT: 1, tableT: 5, upT: 5,
+  pulse: 0, strobe: 0, hue: 290, dance: 0, sweep: 0, spinL: 0, spinR: 0, flowT: 3, groupT: 6, barT: 4, carT: 1, tableT: 5, upT: 5, chatT: 4, shoutT: 3,
 };
 
 // ---------- batida ----------
@@ -211,7 +225,7 @@ function createPlayer(id) {
   const vars = { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 };
   if (location.protocol.startsWith('http')) vars.origin = location.origin;
   player = new YT.Player('yt', {
-    width: '100%', height: '100%', videoId: id, playerVars: vars,
+    width: '1280', height: '720', videoId: id, playerVars: vars,
     events: {
       onReady: e => {
         playerReady = true;
@@ -231,7 +245,7 @@ function createPlayer(id) {
 }
 
 function loadVideo(id) {
-  $('ytwrap').style.display = 'block';
+  setScreen(true);
   S.offset = 0; taps.length = 0;
   if (player && playerReady) player.loadVideoById(id);
   else if (player) pendingId = id;
@@ -241,20 +255,27 @@ function loadVideo(id) {
 
 // ---------- cena 3D ----------
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05030c);
+scene.background = null;
 scene.fog = new THREE.FogExp2(0x05030c, 0.016);
 
 const camera = new THREE.PerspectiveCamera(50, 1, .1, 120);
 camera.position.set(0, 16, 31);
 
+const cssRenderer = new CSS3DRenderer();
+cssRenderer.domElement.id = 'css3d';
+document.body.insertBefore(cssRenderer.domElement, canvas);
+const cssScene = new THREE.Scene();
+
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
+  cssRenderer.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 }
@@ -397,7 +418,47 @@ mesh(new THREE.BoxGeometry(24, .07, .07), stageEdge, 0, .5, ROOM.stageZ + .02);
 const wallCv = document.createElement('canvas'); wallCv.width = 512; wallCv.height = 256;
 const wallCtx = wallCv.getContext('2d');
 const wallTex = new THREE.CanvasTexture(wallCv); wallTex.colorSpace = THREE.SRGBColorSpace;
-mesh(new THREE.PlaneGeometry(17, 8.5), new THREE.MeshBasicMaterial({ map: wallTex }), 0, 7, ROOM.z0 + .01);
+const ledPlane = mesh(new THREE.PlaneGeometry(17, 8.5), new THREE.MeshBasicMaterial({ map: wallTex }), 0, 7, ROOM.z0 + .01);
+// ---------- telão de vídeo: o YouTube roda dentro do 3D ----------
+// o vídeo é um elemento HTML (CSS3D) atrás do canvas; um "buraco" transparente no WebGL deixa ele aparecer
+const SCR = { w: 16, h: 9, y: 7.2, z: ROOM.z0 + .02 };
+const screenHole = mesh(new THREE.PlaneGeometry(SCR.w, SCR.h),
+  new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false }), 0, SCR.y, SCR.z);
+screenHole.visible = false;
+const css3dObj = new CSS3DObject($('ytScreen'));
+css3dObj.position.set(0, SCR.y, SCR.z);
+css3dObj.scale.setScalar(SCR.w * 1.012 / 1280);
+css3dObj.visible = false;
+cssScene.add(css3dObj);
+function setScreen(on) { ledPlane.visible = !on; screenHole.visible = on; css3dObj.visible = on; }
+
+// luzes que correm pela borda do telão no ritmo da música
+const frameLights = (() => {
+  const W2 = SCR.w + 1, H2 = SCR.h + 1, step = .55, top = SCR.y + H2 / 2, bottom = SCR.y - H2 / 2;
+  const nx = Math.round(W2 / step), ny = Math.round(H2 / step), pts = [];
+  for (let i = 0; i < nx; i++) pts.push([-W2 / 2 + i * step, top]);
+  for (let j = 0; j < ny; j++) pts.push([W2 / 2, top - j * step]);
+  for (let i = 0; i < nx; i++) pts.push([W2 / 2 - i * step, bottom]);
+  for (let j = 0; j < ny; j++) pts.push([-W2 / 2, bottom + j * step]);
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .42, .18), new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }), pts.length);
+  const m = new THREE.Matrix4();
+  pts.forEach((p, i) => { m.setPosition(p[0], p[1], SCR.z + .1); im.setMatrixAt(i, m); im.setColorAt(i, new THREE.Color(0x111111)); });
+  im.frustumCulled = false;
+  scene.add(im);
+  return im;
+})();
+const _fc = new THREE.Color();
+function updateFrameLights(active) {
+  const n = frameLights.count;
+  for (let i = 0; i < n; i++) {
+    const w = Math.pow(.5 + .5 * Math.sin(((i / n) * 6 - S.beatPos * .5) * Math.PI * 2), 3);
+    const b = active ? .1 + (.3 + .7 * S.pulse) * w + .3 * S.pulse : .05;
+    _fc.setHSL(((S.hue + i * 4) % 360) / 360, 1, .5).multiplyScalar(Math.min(1.4, b));
+    frameLights.setColorAt(i, _fc);
+  }
+  frameLights.instanceColor.needsUpdate = true;
+}
+
 function drawWallTex(active) {
   const C = 16, R = 8, cw = 32, ch = 32;
   wallCtx.fillStyle = '#07050f'; wallCtx.fillRect(0, 0, 512, 256);
@@ -1074,6 +1135,7 @@ function addPerson(spot, up) {
 }
 
 function detach(f) {
+  if (f.convo) endConvo(f.convo);
   if (f.group) leaveGroup(f);
   if (f.barSlot) { f.barSlot.occ = null; f.barSlot = null; }
   if (f.tableSlot) { f.tableSlot.occ = null; f.tableSlot = null; f.tableRef = null; }
@@ -1204,6 +1266,7 @@ function leaveGroup(f) {
   if (g.members.length < 2) dissolve(g);
 }
 function dissolve(g) {
+  if (g.chat && g.members.length === 2) bubble(pick(g.members), pick(['Adorei dançar com você!', 'Foi demais! 😄', 'Bora de novo depois!']), 2.6);
   for (const f of g.members) { f.group = null; if (f.state === 'idle') f.faceTarget = f.restYaw; }
   g.members.length = 0;
   const i = groups.indexOf(g); if (i >= 0) groups.splice(i, 1);
@@ -1386,7 +1449,11 @@ function endDrag(e) {
   const d = drag; drag = null;
   controls.enabled = true;
   if (d.f && d.f.state === 'held') { d.f.state = 'idle'; d.f.faceTarget = d.f.restYaw; }
-  else if (!d.f && e && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 5) select(null);
+  else if (!d.f && e && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 5) {
+    select(null);
+    setNdc(e);
+    if (ray.intersectObject(screenHole).length) openSearch();
+  }
 }
 addEventListener('pointerup', endDrag);
 addEventListener('pointercancel', () => endDrag(null));
@@ -1454,6 +1521,7 @@ addEventListener('keydown', e => {
   const tag = e.target && e.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   if (e.code === 'KeyV' && !e.repeat) { setFP(!fp.on); return; }
+  if (e.key === '/' || (fp.on && e.code === 'Enter')) { e.preventDefault(); openSearch(); return; }
   if (!fp.on) return;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   keys.add(e.code);
@@ -1494,6 +1562,230 @@ function placeFPCamera() {
   camera.quaternion.setFromEuler(fpEuler.set(fp.pitch, fp.yaw + Math.PI, 0, 'YXZ'));
 }
 
+// ---------- conversas e balões de fala ----------
+const bubblesEl = $('bubbles');
+const bubbles = [];
+const convos = [];
+const _bv = new THREE.Vector3();
+
+function bubble(f, text, secs) {
+  if (!$('chat').checked) return;
+  const old = bubbles.findIndex(b => b.f === f);
+  if (old >= 0) { bubbles[old].el.remove(); bubbles.splice(old, 1); }
+  if (bubbles.length >= 8) { bubbles[0].el.remove(); bubbles.shift(); }
+  const el = document.createElement('div');
+  el.className = 'bubble'; el.textContent = text;
+  bubblesEl.appendChild(el);
+  bubbles.push({ f, el, until: performance.now() / 1000 + secs });
+}
+
+function updateBubbles(t) {
+  camera.updateMatrixWorld();
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i], f = b.f;
+    if (t > b.until || !figs.includes(f)) { b.el.remove(); bubbles.splice(i, 1); continue; }
+    const p = f.root.position;
+    _bv.set(p.x, p.y + 3.6 * f.root.scale.y, p.z).project(camera);
+    const dist = camera.position.distanceTo(p);
+    if (_bv.z > 1 || !f.root.visible || dist > 55) { b.el.style.opacity = 0; continue; }
+    b.el.style.opacity = Math.min(1, (b.until - t) * 3);
+    b.el.style.transform = `translate(${((_bv.x * .5 + .5) * innerWidth).toFixed(1)}px,${((-_bv.y * .5 + .5) * innerHeight).toFixed(1)}px) translate(-50%,-100%)`;
+  }
+}
+
+const musicOn = () => S.mode === 'audio' ? S.live : (S.playing || S.demo);
+
+const LINES = {
+  greet: n => pick([`E aí, ${n}! Tudo bem?`, `Oi, ${n}! Que balada boa!`, `Eita, ${n}! Nem te vi chegar!`, `${n}! Faz tempo que não te vejo!`, `Adorei seu look, ${n}!`]),
+  greetBack: n => pick([`Tudo ótimo, ${n}! E você?`, `Oii, ${n}! Tô amando aqui!`, `Valeu! O seu também tá demais!`, `Cheguei agora, tá lotado, né?`]),
+  style: () => ({
+    funk: ['Bora de funk hoje! 🔥', 'Esse funk tá pegando fogo!'],
+    eletronica: ['Que batida pesada!', 'Esse DJ tá voando!'],
+    disco: ['Clima de discoteca, amei!', 'Isso aqui parece anos 70!'],
+    acrobacias: ['Viu o povo dando mortal?!', 'Essa pista tá insana!'],
+  }[S.set] || ['Que música boa!']),
+  styleBack: ['Pois é, tá demais!', 'Melhor festa do ano!', 'O som tá perfeito!'],
+  silent: ['Cadê a música? 😅', 'Alguém coloca um som aí!'],
+  silentBack: ['Pesquisa uma música lá no telão!', 'Cola um link no telão, ué!'],
+};
+
+function makeScript(a, b, outcome, music) {
+  const an = a.name, bn = b.name;
+  const s = [[0, LINES.greet(bn)], [1, LINES.greetBack(an)]];
+  if (music) { s.push([0, pick(LINES.style())], [1, pick(LINES.styleBack)]); }
+  else { s.push([0, pick(LINES.silent)], [1, pick(LINES.silentBack)]); }
+  if (outcome === 'dance') s.push([0, pick(['Bora dançar essa comigo?', 'Vem dançar, essa é a minha música!', 'Dança comigo?'])], [1, pick(['Bora! 🎉', 'Claro, vamos!', 'Topo! Me puxa!'])]);
+  else if (outcome === 'decline') s.push([0, 'Vem dançar comigo?'], [1, pick(['Agora não, vou no bar!', 'Daqui a pouco, vou pegar uma bebida!'])], [0, pick(['Beleza! Depois a gente dança!', 'Tranquilo, te espero!'])]);
+  else if (outcome === 'bar') s.push([0, 'Tô com sede… bora no bar?'], [1, 'Boa! Eu pago a primeira rodada! 🍹']);
+  else if (outcome === 'up') s.push([0, 'Já viu o 2º andar? A vista é incrível!'], [1, 'Ainda não! Bora lá!']);
+  else if (outcome === 'table') s.push([0, 'Bora subir na mesa e dançar?'], [1, 'Bora! Vai ser épico! 🔥']);
+  else s.push([1, pick(['Bom papo! Vou dar uma volta.', 'Depois a gente se fala!'])]);
+  return s;
+}
+
+function startConvo() {
+  if (!$('chat').checked || convos.length >= 2) return;
+  const cand = crowdOf().filter(f => f.state === 'idle' && !f.group && !f.leaving && f !== sel && !f.convo);
+  if (cand.length < 2) return;
+  const a = pick(cand), pa = a.root.position;
+  const near = cand.filter(o => o !== a && !!o.up === !!a.up && Math.hypot(o.root.position.x - pa.x, o.root.position.z - pa.z) < 9)
+    .sort((x, y) => Math.hypot(x.root.position.x - pa.x, x.root.position.z - pa.z) - Math.hypot(y.root.position.x - pa.x, y.root.position.z - pa.z));
+  if (!near.length) return;
+  const b = near[0], pb = b.root.position, music = musicOn(), r = Math.random();
+  let outcome;
+  if (a.up) outcome = pick(music ? ['dance', 'dance', 'table', 'chat', 'decline'] : ['chat', 'table']);
+  else if (music) outcome = r < .5 ? 'dance' : r < .62 ? 'decline' : r < .77 ? 'bar' : r < .87 ? 'up' : 'table';
+  else outcome = r < .45 ? 'bar' : r < .7 ? 'up' : 'chat';
+  // encontram-se no meio, frente a frente
+  const mx = (pa.x + pb.x) / 2, mz = (pa.z + pb.z) / 2;
+  let dx = pb.x - pa.x, dz = pb.z - pa.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+  const c = { a, b, outcome, lines: makeScript(a, b, outcome, music), i: 0, next: 0, phase: 'approach', t0: performance.now() / 1000 };
+  [[a, -1], [b, 1]].forEach(([f, s]) => {
+    f.convo = c; f.state = 'walk'; f.arrive = 'talk'; f.taking = false;
+    f.path = [new THREE.Vector3(clamp(mx + dx * .85 * s, -10.5, 11), 0, clamp(mz + dz * .85 * s, -7, 22))];
+  });
+  convos.push(c);
+}
+
+function endConvo(c) {
+  const i = convos.indexOf(c); if (i >= 0) convos.splice(i, 1);
+  for (const f of [c.a, c.b]) {
+    if (f.convo === c) f.convo = null;
+    f.speaking = false;
+    if (f.state === 'talk') { f.state = 'idle'; f.faceTarget = f.restYaw; }
+    else if (f.state === 'walk' && f.arrive === 'talk') { f.arrive = null; f.path = []; }
+  }
+}
+
+function finishConvo(c) {
+  const { a, b, outcome } = c;
+  const i = convos.indexOf(c); if (i >= 0) convos.splice(i, 1);
+  a.convo = b.convo = null; a.speaking = b.speaking = false;
+  if (outcome === 'dance') {
+    const g = { kind: 'casal', move: 'casal', members: [a, b], end: S.beatPos + 20 + 8 * Math.floor(Math.random() * 2), chat: true };
+    for (const f of [a, b]) {
+      const o = f === a ? b : a;
+      f.state = 'idle'; f.group = g; f.gi = f === a ? 0 : 1;
+      f.slotYaw = Math.atan2(o.root.position.x - f.root.position.x, o.root.position.z - f.root.position.z);
+      f.faceTarget = f.slotYaw;
+    }
+    groups.push(g);
+    return;
+  }
+  for (const f of [a, b]) { f.state = 'idle'; f.faceTarget = f.restYaw; }
+  if (outcome === 'bar') { sendToBar(a); sendToBar(b); }
+  else if (outcome === 'up') { sendUp(a); sendUp(b); }
+  else if (outcome === 'table') { sendToTable(a); sendToTable(b); }
+  else if (outcome === 'decline') sendToBar(b);
+}
+
+function updateConvos(t) {
+  for (const c of convos.slice()) {
+    const { a, b } = c;
+    if (c.phase === 'approach') {
+      if (a.state === 'talk' && b.state === 'talk') { c.phase = 'talk'; c.next = t + .5; }
+      else if (t - c.t0 > 14 || !['walk', 'talk'].includes(a.state) || !['walk', 'talk'].includes(b.state)) endConvo(c);
+      continue;
+    }
+    if (a.state !== 'talk' || b.state !== 'talk') { endConvo(c); continue; }
+    if (t >= c.next) {
+      if (c.i >= c.lines.length) { finishConvo(c); continue; }
+      const [who, text] = c.lines[c.i++], f = who ? b : a;
+      a.speaking = b.speaking = false; f.speaking = true;
+      const dur = 1.6 + text.length * .055;
+      bubble(f, text, dur);
+      c.next = t + dur + .35;
+    }
+  }
+}
+
+// falas soltas, de acordo com o que cada um está fazendo
+function shout() {
+  if (!$('chat').checked || bubbles.length >= 6) return;
+  const f = pick(figs.filter(p => !p.staff && !p.isDJ && !p.speaking && p.root.visible));
+  if (!f) return;
+  const music = musicOn();
+  let txt;
+  if (f.state === 'drink') txt = pick(['Saúde! 🍻', 'Mais uma, por favor!', 'Esse drink tá ótimo!']);
+  else if (f.state === 'table') txt = pick(['Olha eu aqui em cima! 😎', 'Essa mesa é minha!', 'Alguém tira uma foto!']);
+  else if (f.state === 'walk' && f.taking) txt = f.up ? 'Já vou descer!' : 'Vou lá em cima!';
+  else if (f.state === 'walk' && f.leaving) txt = pick(['Valeu, pessoal! Tchau!', 'Já vou, amanhã tem trabalho 😅']);
+  else if (f.state === 'walk' && f.root.position.x < -9) txt = pick(['Cheguei! 🎉', 'Essa balada tá lotada!']);
+  else if (f.state === 'idle' && music) {
+    txt = f.curMove === 'mortal' ? 'Olha o mortal! 🤸' : f.curMove === 'chao' ? 'Giro no chão! 😮'
+      : f.curMove === 'funk' ? 'Desce, desce! 🔥' : pick(['Uhuuul! 🙌', 'Isso aí! 🔥', 'Toca mais um desse!', 'Bora!']);
+  } else if (f.state === 'idle' && !music) txt = pick(['Cadê a música?', 'Bora colocar um som!']);
+  if (txt) bubble(f, txt, 2.4);
+}
+
+function talkPose(f, t) {
+  const sp = f.speaking ? 1 : 0, s = sn(t * 2.6 + f.lag * 40);
+  return { hx: .08 * s, hy: .1 * sn(t * 1.3 + f.lag * 9), rF: .7 + sp * (.5 + .4 * s), rA: .15 + sp * .25 * Math.max(0, s), lF: .3 + sp * .3 * Math.abs(s), lA: .12, tx: .05, bob: .03 * Math.abs(s) * sp };
+}
+
+// ---------- busca de músicas pelo nome ----------
+const SEARCH_APIS = ['https://api.piped.private.coffee'];
+const resultsEl = $('results');
+const fmtDur = s => (s > 0 ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '');
+
+async function searchYT(q) {
+  for (const base of SEARCH_APIS) {
+    try {
+      const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(`${base}/search?q=${encodeURIComponent(q)}&filter=videos`, { signal: ctl.signal });
+      clearTimeout(to);
+      if (!r.ok) continue;
+      const d = await r.json();
+      const items = (d.items || []).map(i => ({ m: /v=([\w-]{11})/.exec(i.url || ''), i }))
+        .filter(x => x.m && !x.i.isShort).slice(0, 14)
+        .map(x => ({ id: x.m[1], title: x.i.title, by: x.i.uploaderName, dur: +x.i.duration }));
+      if (items.length) return items;
+    } catch (e) { /* tenta a próxima */ }
+  }
+  return null;
+}
+
+function showResults(items, q) {
+  resultsEl.innerHTML = '';
+  for (const it of items) {
+    const b = document.createElement('button'); b.className = 'card';
+    const img = document.createElement('img'); img.src = `https://i.ytimg.com/vi/${it.id}/mqdefault.jpg`; img.alt = '';
+    const t = document.createElement('span'); t.textContent = it.title;
+    const s = document.createElement('small'); s.textContent = [it.by, fmtDur(it.dur)].filter(Boolean).join(' · ');
+    b.append(img, t, s);
+    b.onclick = () => playId(it.id, it.title);
+    resultsEl.appendChild(b);
+  }
+  const x = document.createElement('button'); x.className = 'card close'; x.textContent = '✕ fechar';
+  x.onclick = () => { resultsEl.style.display = 'none'; };
+  resultsEl.appendChild(x);
+  resultsEl.style.display = 'flex';
+}
+
+function showSearchFail(q) {
+  resultsEl.innerHTML = '';
+  const b = document.createElement('button'); b.className = 'card'; b.textContent = '🔎 Abrir a busca do YouTube em outra aba';
+  b.onclick = () => window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), '_blank', 'noopener');
+  resultsEl.appendChild(b);
+  resultsEl.style.display = 'flex';
+  say('A busca por nome não respondeu agora. Abra a busca do YouTube, copie o link do vídeo e cole aqui.', true);
+}
+
+function playId(id, title) {
+  if (location.protocol === 'file:') { say('Abra pelo arquivo iniciar.bat (http://localhost:8080). Direto do arquivo o YouTube recusa tocar.', true); return; }
+  S.demo = false; $('demo').textContent = 'Demo';
+  resultsEl.style.display = 'none';
+  $('url').blur();
+  loadVideo(id);
+  say(title ? 'Tocando: ' + title : 'Carregando o vídeo…');
+}
+
+function openSearch() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  const u = $('url'); u.focus(); u.select();
+  say('Digite o nome da música (ou cole um link) e aperte Enter.');
+}
+
 // ---------- UI ----------
 function say(t, err) { const m = $('msg'); m.textContent = t; m.classList.toggle('err', !!err); }
 function updateUi() { const a = S.mode === 'audio'; $('bpm').disabled = a; $('tap').disabled = a; }
@@ -1509,14 +1801,24 @@ function backToBpm(msg) {
   $('mode').value = 'bpm'; updateUi(); if (msg) say(msg, true);
 }
 
-$('go').onclick = () => {
-  const id = parseId($('url').value);
-  if (!id) { say('Não reconheci esse link. Cole o endereço completo do vídeo do YouTube.', true); return; }
-  if (location.protocol === 'file:') { say('Abra pelo arquivo iniciar.bat (http://localhost:8080). Direto do arquivo o YouTube recusa tocar.', true); return; }
-  S.demo = false; $('demo').textContent = 'Demo';
-  loadVideo(id);
+$('go').onclick = async () => {
+  const txt = $('url').value.trim();
+  if (!txt) { openSearch(); return; }
+  const id = parseId(txt);
+  if (id) { playId(id); return; }
+  say('Buscando “' + txt + '”…');
+  const items = await searchYT(txt);
+  if (items) { showResults(items, txt); say('Clique no cartão da música que quer ouvir.'); } else showSearchFail(txt);
+  $('url').blur();
 };
-$('url').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click(); });
+$('url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('go').click();
+  if (e.key === 'Escape') { $('url').blur(); resultsEl.style.display = 'none'; }
+});
+$('goScreen').onclick = () => {
+  if (fp.on) setFP(false);
+  camera.position.set(0, 7, 13); controls.target.set(0, 6.6, -8); controls.update();
+};
 $('bpm').oninput = e => setBpm(+e.target.value);
 
 const taps = [];
@@ -1606,6 +1908,10 @@ function frame(ms) {
     }
   }
 
+  S.chatT -= dt; if (S.chatT <= 0) { S.chatT = rnd(7, 13); startConvo(); }
+  S.shoutT -= dt; if (S.shoutT <= 0) { S.shoutT = rnd(2.5, 5); shout(); }
+  updateConvos(t);
+
   // personagens
   if (fp.on) updateFP(dt);
   for (const f of figs.slice()) updateFig(f, dt, t, active);
@@ -1658,12 +1964,15 @@ function frame(ms) {
     ring.position.set(sel.root.position.x, sel.root.position.y + .05, sel.root.position.z);
     const sc = 1 + .08 * Math.sin(t * 5); ring.scale.set(sc, 1, sc);
     const now = sel.state === 'drink' ? '🍹 Bebendo no bar' : sel.state === 'walk' ? (sel.taking ? '🪜 Na escada' : '🚶 Andando')
-      : sel.state === 'held' ? '✋ Sendo carregado' : sel.state === 'table' ? '🪑 Dançando na mesa' : !active ? '⏸ Esperando a música'
+      : sel.state === 'talk' ? '💬 Conversando' : sel.state === 'held' ? '✋ Sendo carregado' : sel.state === 'table' ? '🪑 Dançando na mesa' : !active ? '⏸ Esperando a música'
       : (sel.group ? '👯 ' : '💃 ') + (MOVE_LABEL[sel.curMove] || '');
     if (now !== lastNow) { $('selNow').textContent = now; lastNow = now; }
   }
   if (fp.on) placeFPCamera(); else controls.update();
+  updateFrameLights(active);
+  updateBubbles(t);
   renderer.render(scene, camera);
+  cssRenderer.render(cssScene, camera);
   requestAnimationFrame(frame);
 }
 
@@ -1696,6 +2005,7 @@ function updateFig(f, dt, t, active) {
           f.taking = false;
           if (f.leaving) { removeFig(f); return; }
           if (f.arrive === 'bar') { f.state = 'drink'; f.arrive = null; f.faceTarget = PI / 2; f.drinkUntil = t + rnd(8, 15); }
+          else if (f.arrive === 'talk') { f.state = 'talk'; f.arrive = null; }
           else if (f.arrive === 'table') { p.x = tgt.x; p.z = tgt.z; f.state = 'table'; f.arrive = null; f.faceTarget = rnd(-.4, .4); f.tableUntil = t + rnd(10, 20); }
           else { f.state = 'idle'; f.faceTarget = f.group ? f.slotYaw : f.restYaw; }
         }
@@ -1714,6 +2024,10 @@ function updateFig(f, dt, t, active) {
   } else if (f.state === 'drink') {
     T = drinkPose(f, t); k = 10;
     if (t > f.drinkUntil) leaveBar(f);
+  } else if (f.state === 'talk') {
+    T = talkPose(f, t); k = 12;
+    const o = f.convo && (f.convo.a === f ? f.convo.b : f.convo.a);
+    if (o) f.faceTarget = Math.atan2(o.root.position.x - p.x, o.root.position.z - p.z);
   }
   if (f.state === 'table' && t > f.tableUntil) leaveTable(f);
 
